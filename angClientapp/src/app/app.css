@@ -1,0 +1,8 @@
+#activities {
+  position: absolute;
+  top: 0;
+  left: 0;
+   padding: 1em;
+  border: none;
+  background-color: rgb(107, 120, 240);
+}
