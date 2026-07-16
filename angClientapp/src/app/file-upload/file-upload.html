@@ -1,24 +1,50 @@
-<div class="form-group">
-    <label for="file">Choose File</label>
-    <input
-        type="file"
-        id="file"
-        #fileInputRef
-        (change)="onFileSelected($event)"
-        [disabled]="isUploading"
-    />
+<div class="upload-layout">
+    <div class="form-group">
+        <label for="file">Choose File</label>
+        <input
+            type="file"
+            id="file"
+            #fileInputRef
+            (change)="onFileSelected($event)"
+            [disabled]="isUploading"
+        />
 
-    <p class="file-meta">{{ selectedFileName }}</p>
+        <p class="file-meta">{{ selectedFileName }}</p>
 
-    <div class="actions">
-        <button type="button" (click)="uploadFileToActivity()" [disabled]="!fileToUpload || isUploading">
-            {{ isUploading ? 'Uploading...' : 'Upload' }}
-        </button>
-        <button type="button" (click)="clearSelection(fileInputRef)" [disabled]="isUploading">
-            Clear
-        </button>
+        <div class="actions">
+            <button type="button" (click)="uploadFileToActivity()" [disabled]="!fileToUpload || isUploading">
+                {{ isUploading ? 'Uploading...' : 'Upload' }}
+            </button>
+            <button type="button" (click)="clearSelection(fileInputRef)" [disabled]="isUploading">
+                Clear
+            </button>
+        </div>
+
+        <p class="status success">{{ successMessage }}</p>
+        <p class="status error">{{ errorMessage }}</p>
     </div>
 
-    <p class="status success">{{ successMessage }}</p>
-    <p class="status error">{{ errorMessage }}</p>
+    <div class="uploaded-files">
+        <div class="uploaded-files-header">
+            <h3>Uploaded Files</h3>
+            <button type="button" (click)="loadUploadedFiles()" [disabled]="isLoadingFiles">
+                {{ isLoadingFiles ? 'Loading...' : 'Refresh' }}
+            </button>
+        </div>
+
+        <p class="file-meta" *ngIf="!isLoadingFiles && uploadedFiles.length === 0">
+            No files uploaded yet.
+        </p>
+
+        <ul *ngIf="uploadedFiles.length > 0" class="uploaded-files-list">
+            <li *ngFor="let file of uploadedFiles">
+                <div class="file-name">{{ file.originalFileName }}</div>
+                <div class="file-details">
+                    <span>{{ formatSize(file.size) }}</span>
+                    <span>{{ file.uploadedAt | date:'medium' }}</span>
+                </div>
+            </li>
+        </ul>
+    </div>
 </div>
+

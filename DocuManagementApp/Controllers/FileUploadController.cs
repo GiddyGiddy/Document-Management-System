@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using DocuManagementApp.Services;
+using System.IO;
 
 namespace DocuManagementApp.Controllers
 {
@@ -12,20 +14,20 @@ namespace DocuManagementApp.Controllers
   [Route("api/fileupload")]
   public class FileUploadController : ControllerBase
   {
-    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<FileUploadController> _logger;
+    private readonly IDocumentStorageService _documentStorageService;
 
-    public FileUploadController(IWebHostEnvironment environment, ILogger<FileUploadController> logger)
+    public FileUploadController(ILogger<FileUploadController> logger, IDocumentStorageService documentStorageService)
     {
-      _environment = environment;
       _logger = logger;
+      _documentStorageService = documentStorageService;
       _logger.LogInformation("FileUploadController instantiated.");
     }
 
     [HttpPost("upload")]
     [Consumes("application/json")]
     [RequestSizeLimit(30 * 1024 * 1024)]
-    public async Task<IActionResult> UploadFile([FromBody] UploadFileRequest? request)
+    public async Task<IActionResult> UploadFile([FromBody] UploadFileRequest? request, CancellationToken cancellationToken)
     {
       _logger.LogInformation("Upload request received at {Time}.", DateTime.Now);
 
@@ -54,24 +56,43 @@ namespace DocuManagementApp.Controllers
         return BadRequest(new { message = "Empty file content." });
       }
 
-      var uploadsPath = Path.Combine(_environment.ContentRootPath, "Uploads");
-      Directory.CreateDirectory(uploadsPath);
-
       var safeFileName = Path.GetFileName(request.FileName);
-      var storedFileName = $"{Guid.NewGuid():N}_{safeFileName}";
-      var fullPath = Path.Combine(uploadsPath, storedFileName);
+      var savedDocument = await _documentStorageService.SaveDocumentAsync(
+        safeFileName,
+        fileBytes,
+        "application/octet-stream",
+        cancellationToken);
 
-      await System.IO.File.WriteAllBytesAsync(fullPath, fileBytes);
-
-      _logger.LogInformation("File saved: '{StoredFileName}', size: {Size} bytes.", storedFileName, fileBytes.Length);
+      _logger.LogInformation("File saved to PostgreSQL with id '{DocumentId}', size: {Size} bytes.", savedDocument.Id, savedDocument.Size);
 
       return Ok(new
       {
         message = "File uploaded successfully.",
-        originalFileName = safeFileName,
-        storedFileName,
-        size = fileBytes.Length
+        id = savedDocument.Id,
+        originalFileName = savedDocument.OriginalFileName,
+        storedFileName = savedDocument.Id.ToString(),
+        size = savedDocument.Size
       });
+    }
+
+    [HttpGet("files")]
+    public async Task<IActionResult> GetUploadedFiles(CancellationToken cancellationToken)
+    {
+      var files = await _documentStorageService.GetDocumentsAsync(cancellationToken);
+      return Ok(files);
+    }
+
+    [HttpGet("download/{id:guid}")]
+    public async Task<IActionResult> DownloadFile([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+      var document = await _documentStorageService.GetDocumentByIdAsync(id, cancellationToken);
+      if (document is null)
+      {
+        return NotFound(new { message = "File not found." });
+      }
+
+      var stream = new MemoryStream(document.Content);
+      return File(stream, document.ContentType, document.OriginalFileName, enableRangeProcessing: true);
     }
   }
 }

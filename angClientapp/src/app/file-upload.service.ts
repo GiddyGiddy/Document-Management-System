@@ -11,11 +11,19 @@ interface UploadFileRequest {
   contentBase64: string;
 }
 
+export interface UploadedFileInfo {
+  storedFileName: string;
+  originalFileName: string;
+  size: number;
+  uploadedAt: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class FileUploadService {
   constructor(private httpClient: HttpClient) { }
+
   postFile(fileToUpload: File): Observable<boolean> {
     const endpoint = `${environment.apiURL}/fileupload/upload`;
     return from(fileToUpload.arrayBuffer()).pipe(
@@ -31,6 +39,16 @@ export class FileUploadService {
       }),
       map(() => true),
       catchError((e) => this.handleError(e))
+    );
+  }
+
+  getUploadedFiles(): Observable<UploadedFileInfo[]> {
+    const endpoint = `${environment.apiURL}/fileupload/files`;
+    return this.httpClient.get<UploadedFileInfo[]>(endpoint).pipe(
+      catchError((error) => {
+        console.error('Failed to load uploaded files:', error);
+        return of([]);
+      })
     );
   }
 

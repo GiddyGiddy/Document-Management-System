@@ -1,10 +1,6 @@
-import { ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
-import { FileUploadService } from '../file-upload.service';
-
-interface FileUploadResponse {
-  // Define the response structure from the server
-  [key: string]: unknown;
-}
+import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { FileUploadService, UploadedFileInfo } from '../file-upload.service';
 
 interface FileUploadError {
   // Define the error structure
@@ -13,16 +9,18 @@ interface FileUploadError {
 
 @Component({
   selector: 'app-file-upload',
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './file-upload.html',
   styleUrl: './file-upload.css',
 })
-export class FileUpload {
+export class FileUpload implements OnInit {
   @ViewChild('fileInputRef') fileInputRef?: ElementRef<HTMLInputElement>;
 
   fileToUpload: File | null = null;
+  uploadedFiles: UploadedFileInfo[] = [];
   readonly maxFileSizeBytes = 5 * 1024 * 1024;
   isUploading = false;
+  isLoadingFiles = false;
   errorMessage = '';
   successMessage = '';
 
@@ -30,6 +28,10 @@ export class FileUpload {
     private fileUploadService: FileUploadService,
     private cdr: ChangeDetectorRef
   ) { }
+
+  ngOnInit(): void {
+    this.loadUploadedFiles();
+  }
 
   get selectedFileName(): string {
     return this.fileToUpload?.name ?? 'No file selected';
@@ -90,6 +92,7 @@ export class FileUpload {
             this.clearSelection(this.fileInputRef.nativeElement);
             this.successMessage = 'File uploaded successfully.';
           }
+          this.loadUploadedFiles();
           this.cdr.detectChanges();
           return;
         }
@@ -104,5 +107,32 @@ export class FileUpload {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  loadUploadedFiles(): void {
+    this.isLoadingFiles = true;
+    this.fileUploadService.getUploadedFiles().subscribe({
+      next: (files) => {
+        this.uploadedFiles = files;
+        this.isLoadingFiles = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isLoadingFiles = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  formatSize(sizeInBytes: number): string {
+    if (sizeInBytes < 1024) {
+      return `${sizeInBytes} B`;
+    }
+
+    if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 }
