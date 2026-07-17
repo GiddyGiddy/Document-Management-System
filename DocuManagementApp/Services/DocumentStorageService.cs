@@ -2,7 +2,8 @@ using DocuManagementApp.Data;
 using DocuManagementApp.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace DocuManagementApp.Services;
+namespace DocuManagementApp.Services
+{
 
 public sealed class DocumentListItem
 {
@@ -93,4 +94,5 @@ public sealed class DocumentStorageService : IDocumentStorageService
       })
       .SingleOrDefaultAsync(cancellationToken);
   }
+}
 }
