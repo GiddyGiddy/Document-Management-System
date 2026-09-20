@@ -38,7 +38,15 @@
 
         <ul *ngIf="uploadedFiles.length > 0" class="uploaded-files-list">
             <li *ngFor="let file of uploadedFiles">
-                <div class="file-name">{{ file.originalFileName }}</div>
+                <div class="file-name">
+                    <a
+                        *ngIf="isPdf(file); else plainFileName"
+                        [href]="getFileUrl(file)"
+                        target="_blank"
+                        rel="noopener"
+                    >{{ file.originalFileName }}</a>
+                    <ng-template #plainFileName>{{ file.originalFileName }}</ng-template>
+                </div>
                 <div class="file-details">
                     <span>{{ formatSize(file.size) }}</span>
                     <span>{{ file.uploadedAt | date:'medium' }}</span>

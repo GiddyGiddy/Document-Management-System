@@ -8,6 +8,7 @@ namespace DocuManagementApp.Controllers
   {
     public string? FileName { get; set; }
     public string? ContentBase64 { get; set; }
+    public string? ContentType { get; set; }
   }
 
   [ApiController]
@@ -60,7 +61,7 @@ namespace DocuManagementApp.Controllers
       var savedDocument = await _documentStorageService.SaveDocumentAsync(
         safeFileName,
         fileBytes,
-        "application/octet-stream",
+        request.ContentType,
         cancellationToken);
 
       _logger.LogInformation("File saved to PostgreSQL with id '{DocumentId}', size: {Size} bytes.", savedDocument.Id, savedDocument.Size);
@@ -92,7 +93,15 @@ namespace DocuManagementApp.Controllers
       }
 
       var stream = new MemoryStream(document.Content);
-      return File(stream, document.ContentType, document.OriginalFileName, enableRangeProcessing: true);
+      var contentType = document.ContentType;
+      if (contentType == "application/octet-stream" &&
+          string.Equals(Path.GetExtension(document.OriginalFileName), ".pdf", StringComparison.OrdinalIgnoreCase))
+      {
+        contentType = "application/pdf";
+      }
+
+      Response.Headers.ContentDisposition = $"inline; filename=\"{document.OriginalFileName}\"";
+      return File(stream, contentType, enableRangeProcessing: true);
     }
   }
 }

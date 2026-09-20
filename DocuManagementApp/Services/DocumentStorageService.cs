@@ -46,10 +46,14 @@ public sealed class DocumentStorageService : IDocumentStorageService
 
   public async Task<StoredDocumentResult> SaveDocumentAsync(string originalFileName, byte[] content, string? contentType, CancellationToken cancellationToken)
   {
+    var resolvedContentType = string.IsNullOrWhiteSpace(contentType)
+      ? GetContentType(originalFileName)
+      : contentType;
+
     var document = new DocumentRecord
     {
       OriginalFileName = originalFileName,
-      ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
+      ContentType = resolvedContentType,
       FileContent = content,
       SizeBytes = content.Length,
       UploadedAtUtc = DateTimeOffset.UtcNow
@@ -63,6 +67,20 @@ public sealed class DocumentStorageService : IDocumentStorageService
       Id = document.Id,
       OriginalFileName = document.OriginalFileName,
       Size = document.SizeBytes
+    };
+  }
+
+  private static string GetContentType(string fileName)
+  {
+    return Path.GetExtension(fileName).ToLowerInvariant() switch
+    {
+      ".pdf" => "application/pdf",
+      ".txt" => "text/plain",
+      ".png" => "image/png",
+      ".jpg" or ".jpeg" => "image/jpeg",
+      ".doc" => "application/msword",
+      ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      _ => "application/octet-stream"
     };
   }
 

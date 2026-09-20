@@ -135,4 +135,12 @@ export class FileUpload implements OnInit {
 
     return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
   }
+
+  isPdf(file: UploadedFileInfo): boolean {
+    return file.originalFileName.toLowerCase().endsWith('.pdf');
+  }
+
+  getFileUrl(file: UploadedFileInfo): string {
+    return this.fileUploadService.getFileUrl(file.storedFileName);
+  }
 }

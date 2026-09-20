@@ -9,6 +9,7 @@ import { environment } from '../environments/environment.development';
 interface UploadFileRequest {
   fileName: string;
   contentBase64: string;
+  contentType: string;
 }
 
 export interface UploadedFileInfo {
@@ -33,6 +34,7 @@ export class FileUploadService {
         const payload: UploadFileRequest = {
           fileName: fileToUpload.name,
           contentBase64: btoa(binary),
+          contentType: fileToUpload.type || 'application/octet-stream',
         };
       console.log('Uploading file to endpoint:', endpoint, 'with payload:', payload);
         return this.httpClient.post(endpoint, payload);
@@ -50,6 +52,10 @@ export class FileUploadService {
         return of([]);
       })
     );
+  }
+
+  getFileUrl(storedFileName: string): string {
+    return `${environment.apiURL}/fileupload/download/${encodeURIComponent(storedFileName)}`;
   }
 
   private handleError(error: any): Observable<boolean> {
