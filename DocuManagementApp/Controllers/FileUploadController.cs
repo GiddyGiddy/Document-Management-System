@@ -17,11 +17,19 @@ namespace DocuManagementApp.Controllers
   {
     private readonly ILogger<FileUploadController> _logger;
     private readonly IDocumentStorageService _documentStorageService;
+    private readonly IOfficeToPdfConversionService _officeConversionService;
+    private readonly PdfADocumentService _pdfaService;
 
-    public FileUploadController(ILogger<FileUploadController> logger, IDocumentStorageService documentStorageService)
+    public FileUploadController(
+      ILogger<FileUploadController> logger,
+      IDocumentStorageService documentStorageService,
+      IOfficeToPdfConversionService officeConversionService,
+      PdfADocumentService pdfaService)
     {
       _logger = logger;
       _documentStorageService = documentStorageService;
+      _officeConversionService = officeConversionService;
+      _pdfaService = pdfaService;
       _logger.LogInformation("FileUploadController instantiated.");
     }
 
@@ -93,15 +101,103 @@ namespace DocuManagementApp.Controllers
       }
 
       var stream = new MemoryStream(document.Content);
-      var contentType = document.ContentType;
-      if (contentType == "application/octet-stream" &&
-          string.Equals(Path.GetExtension(document.OriginalFileName), ".pdf", StringComparison.OrdinalIgnoreCase))
-      {
-        contentType = "application/pdf";
-      }
+      var contentType = document.ContentType == "application/octet-stream"
+        ? DocumentStorageService.ResolveContentTypeForExtension(document.OriginalFileName)
+        : document.ContentType;
 
       Response.Headers.ContentDisposition = $"inline; filename=\"{document.OriginalFileName}\"";
       return File(stream, contentType, enableRangeProcessing: true);
+    }
+
+    [HttpPost("{id:guid}/convert-to-pdf")]
+    public async Task<IActionResult> ConvertToPdf([FromRoute] Guid id, [FromQuery] bool toPdfA, CancellationToken cancellationToken)
+    {
+      var document = await _documentStorageService.GetDocumentByIdAsync(id, cancellationToken);
+      if (document is null)
+      {
+        return NotFound(new { message = "File not found." });
+      }
+
+      if (!_officeConversionService.IsSupportedExtension(document.OriginalFileName))
+      {
+        return BadRequest(new { message = "Only Word or Excel documents can be converted (.doc, .docx, .xls, .xlsx, .rtf, .odt, .ods)." });
+      }
+
+      var workDirectory = Path.Combine(Path.GetTempPath(), "office-conversion", Guid.NewGuid().ToString("N"));
+      Directory.CreateDirectory(workDirectory);
+
+      try
+      {
+        var sourcePath = Path.Combine(workDirectory, Path.GetFileName(document.OriginalFileName));
+        await System.IO.File.WriteAllBytesAsync(sourcePath, document.Content, cancellationToken);
+
+        var conversionResult = await _officeConversionService.ConvertToPdfAsync(sourcePath, workDirectory, cancellationToken);
+        if (!conversionResult.Success || conversionResult.OutputPdfPath is null)
+        {
+          _logger.LogError("Word/Excel to PDF conversion failed for document '{DocumentId}': {Error}", id, conversionResult.ErrorMessage);
+          return StatusCode(StatusCodes.Status500InternalServerError, new { message = conversionResult.ErrorMessage ?? "Conversion failed." });
+        }
+
+        var finalPdfPath = conversionResult.OutputPdfPath;
+
+        if (toPdfA)
+        {
+          var pdfaPath = Path.Combine(workDirectory, Path.GetFileNameWithoutExtension(finalPdfPath) + "-pdfa.pdf");
+          _pdfaService.QuellPfad = finalPdfPath;
+          _pdfaService.PdfaZielPfad = pdfaPath;
+          _pdfaService.PdfaCompliance = 1;
+          _pdfaService.DisablePdfEncryptionForCompliance = true;
+          _pdfaService.EnforcePdfaConformanceOutput = true;
+
+          var pdfaResult = _pdfaService.PdfNachPdfaKonvertieren();
+          if (pdfaResult != 0)
+          {
+            _logger.LogError("PDF/A conversion failed for document '{DocumentId}' with code {Code}.", id, pdfaResult);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"PDF/A conversion failed with code {pdfaResult}." });
+          }
+
+          finalPdfPath = pdfaPath;
+        }
+
+        var pdfBytes = await System.IO.File.ReadAllBytesAsync(finalPdfPath, cancellationToken);
+        var convertedFileName = Path.GetFileNameWithoutExtension(document.OriginalFileName) + (toPdfA ? ".pdfa.pdf" : ".pdf");
+
+        var savedDocument = await _documentStorageService.SaveDocumentAsync(
+          convertedFileName,
+          pdfBytes,
+          "application/pdf",
+          cancellationToken);
+
+        _logger.LogInformation("Converted document '{SourceId}' to {Kind} as new document '{NewId}'.", id, toPdfA ? "PDF/A" : "PDF", savedDocument.Id);
+
+        return Ok(new
+        {
+          message = toPdfA ? "Document converted to PDF/A successfully." : "Document converted to PDF successfully.",
+          id = savedDocument.Id,
+          originalFileName = savedDocument.OriginalFileName,
+          storedFileName = savedDocument.Id.ToString(),
+          size = savedDocument.Size
+        });
+      }
+      finally
+      {
+        TryDeleteDirectory(workDirectory);
+      }
+    }
+
+    private void TryDeleteDirectory(string path)
+    {
+      try
+      {
+        if (Directory.Exists(path))
+        {
+          Directory.Delete(path, recursive: true);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Failed to clean up temporary conversion directory '{Path}'.", path);
+      }
     }
   }
 }

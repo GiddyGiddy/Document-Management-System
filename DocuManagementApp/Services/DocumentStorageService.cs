@@ -47,7 +47,7 @@ public sealed class DocumentStorageService : IDocumentStorageService
   public async Task<StoredDocumentResult> SaveDocumentAsync(string originalFileName, byte[] content, string? contentType, CancellationToken cancellationToken)
   {
     var resolvedContentType = string.IsNullOrWhiteSpace(contentType)
-      ? GetContentType(originalFileName)
+      ? ResolveContentTypeForExtension(originalFileName)
       : contentType;
 
     var document = new DocumentRecord
@@ -70,16 +70,24 @@ public sealed class DocumentStorageService : IDocumentStorageService
     };
   }
 
-  private static string GetContentType(string fileName)
+  // Shared so the download endpoint can also fix up legacy octet-stream uploads by extension.
+  public static string ResolveContentTypeForExtension(string fileName)
   {
     return Path.GetExtension(fileName).ToLowerInvariant() switch
     {
       ".pdf" => "application/pdf",
       ".txt" => "text/plain",
-      ".png" => "image/png",
-      ".jpg" or ".jpeg" => "image/jpeg",
       ".doc" => "application/msword",
       ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".xls" => "application/vnd.ms-excel",
+      ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".png" => "image/png",
+      ".jpg" or ".jpeg" => "image/jpeg",
+      ".gif" => "image/gif",
+      ".bmp" => "image/bmp",
+      ".mp4" => "video/mp4",
+      ".mkv" => "video/x-matroska",
+      ".mp3" => "audio/mpeg",
       _ => "application/octet-stream"
     };
   }

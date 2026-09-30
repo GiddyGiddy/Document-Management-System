@@ -1,0 +1,226 @@
+<style>
+.sec-1 { background: #0a1a2a !important; }
+.sec-2 { background: #d32f2f !important; }
+.sec-3 { background: #388e3c !important; }
+.sec-4 { background: #1976d2 !important; }
+.sec-5 { background: #f57c00 !important; }
+.sec-6 { background: #7b1fa2 !important; }
+.sec-7 { background: #c2185b !important; }
+:root { --brand: #0a1a2a; --brand-2: #143d59; --accent: #f57c00; --brand-shadow: rgba(10, 26, 42, 0.8); }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+* { font-family: 'Inter', sans-serif; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.anim-up { animation: fadeInUp 0.6s ease both; }
+.anim-fade { animation: fadeIn 0.8s ease both; }
+.btn-grad { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.btn-grad:hover { transform: translateY(-2px); box-shadow: 0 12px 28px var(--brand-shadow); }
+.card-lift { transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 8px 28px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.12); }
+.card-lift:hover { transform: translateY(-5px); box-shadow: 0 20px 52px rgba(0,0,0,0.38), 0 4px 12px rgba(0,0,0,0.14); }
+</style>
+
+<div class="row sectionBlockLayout sec-1" data-component-theme="portalThemeColor8"
+ style="display: flex; flex-wrap: wrap; min-height: 520px;
+ background-image: url('https://cdn.hubblecontent.osi.office.net/m365content/publish/4041b966-1273-428c-bdf7-0968196009fc/thumbnails/xxlarge.jpg') !important;
+ background-size: cover; background-position: center;">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-12 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column;
+ justify-content: center; align-items: center; text-align: center;
+ padding: 80px 48px;
+ background: linear-gradient(rgba(10,10,20,0.52), rgba(10,10,20,0.65));">
+ <span style="font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: #a5b4fc; font-weight: 600; display: block; margin-bottom: 16px;">Dokumentenmanagement</span>
+ <h1 class="anim-up" style="font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; color: #fff; margin-bottom: 20px;">Automatisierte Dokumentenanalyse</h1>
+ <p class="anim-up" style="font-size: 1.1rem; color: rgba(255,255,255,0.85); max-width: 580px; line-height: 1.7; margin-bottom: 36px;">Laden Sie Ihre Dokumente hoch und lassen Sie sie automatisch analysieren, archivieren und wichtige Informationen extrahieren.</p>
+ <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+ <button class="button1 btn-grad" style="background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; border: none; border-radius: 999px; padding: 14px 36px; font-weight: 700; font-size: 1rem; cursor: pointer;">Dokument Hochladen</button>
+ <button class="button1" style="background: transparent; color: #fff; border: 2px solid rgba(255,255,255,0.6); border-radius: 999px; padding: 12px 32px; font-weight: 600; cursor: pointer;">Mehr Erfahren</button>
+ </div>
+ </div>
+ </div>
+</div>
+
+<div class="row sectionBlockLayout sec-2" data-component-theme="portalThemeColor2"
+ style="display: flex; flex-wrap: wrap; min-height: auto;">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-12 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column; padding: 64px 40px;">
+ <div style="text-align: center; margin-bottom: 48px;">
+ <span style="font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.75); font-weight: 600; display: block; margin-bottom: 10px;">Funktionen</span>
+ <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #fff; margin-bottom: 12px;">Unsere Kernfunktionen</h2>
+ <p style="color: rgba(255,255,255,0.85); max-width: 520px; margin: 0 auto; line-height: 1.7;">Effiziente Dokumentenverarbeitung mit modernster Technologie.</p>
+ </div>
+ <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px;">
+ <div class="card-lift" style="background: rgba(255,255,255,0.70); border-radius: 20px; padding: 32px;">
+ <div style="width: 48px; height: 48px; border-radius: 14px; background: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 20px;">📄</div>
+ <h3 style="font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 8px;">Dokumenten-Upload</h3>
+ <p style="color: #555; line-height: 1.65; margin: 0; font-size: 0.95rem;">Sicheres Hochladen von verschiedensten Dokumenttypen mit einfacher Benutzeroberfläche.</p>
+ </div>
+ <div class="card-lift" style="background: rgba(255,255,255,0.70); border-radius: 20px; padding: 32px;">
+ <div style="width: 48px; height: 48px; border-radius: 14px; background: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 20px;">🔍</div>
+ <h3 style="font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 8px;">Automatische Analyse</h3>
+ <p style="color: #555; line-height: 1.65; margin: 0; font-size: 0.95rem;">Extrahieren Sie automatisch relevante Daten und Metadaten aus Ihren Dokumenten.</p>
+ </div>
+ <div class="card-lift" style="background: rgba(255,255,255,0.70); border-radius: 20px; padding: 32px;">
+ <div style="width: 48px; height: 48px; border-radius: 14px; background: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 20px;">🗄️</div>
+ <h3 style="font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 8px;">Archivierung</h3>
+ <p style="color: #555; line-height: 1.65; margin: 0; font-size: 0.95rem;">Organisieren und speichern Sie Ihre Dokumente sicher und zugänglich.</p>
+ </div>
+ <div class="card-lift" style="background: rgba(255,255,255,0.70); border-radius: 20px; padding: 32px;">
+ <div style="width: 48px; height: 48px; border-radius: 14px; background: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 20px;">⚙️</div>
+ <h3 style="font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 8px;">Integration & API</h3>
+ <p style="color: #555; line-height: 1.65; margin: 0; font-size: 0.95rem;">Nahtlose Integration in Ihre bestehenden Systeme und Workflows.</p>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<div class="row sectionBlockLayout sec-3" data-component-theme="portalThemeColor8"
+ style="display: flex; flex-wrap: wrap; min-height: auto;">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-12 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column; padding: 64px 40px;">
+ <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 32px; text-align: center;">
+ <div>
+ <div style="font-size: 3rem; font-weight: 800; color: var(--accent); line-height: 1;">10.000+</div>
+ <p style="color: rgba(255,255,255,0.75); margin-top: 8px; font-weight: 500; font-size: 0.95rem;">Verarbeitete Dokumente</p>
+ </div>
+ <div>
+ <div style="font-size: 3rem; font-weight: 800; color: var(--accent); line-height: 1;">99.9%</div>
+ <p style="color: rgba(255,255,255,0.75); margin-top: 8px; font-weight: 500; font-size: 0.95rem;">Genauigkeit der Analyse</p>
+ </div>
+ <div>
+ <div style="font-size: 3rem; font-weight: 800; color: var(--accent); line-height: 1;">24/7</div>
+ <p style="color: rgba(255,255,255,0.75); margin-top: 8px; font-weight: 500; font-size: 0.95rem;">Verfügbarkeit und Support</p>
+ </div>
+ <div>
+ <div style="font-size: 3rem; font-weight: 800; color: var(--accent); line-height: 1;">50+</div>
+ <p style="color: rgba(255,255,255,0.75); margin-top: 8px; font-weight: 500; font-size: 0.95rem;">Unterstützte Dokumenttypen</p>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<div class="row sectionBlockLayout sec-4" data-component-theme="portalThemeColor3"
+ style="display: flex; flex-wrap: wrap; min-height: auto;">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-12 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column; padding: 64px 40px;">
+ <div style="text-align: center; margin-bottom: 48px;">
+ <span style="font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.75); font-weight: 600; display: block; margin-bottom: 10px;">Kundenstimmen</span>
+ <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #fff; margin-bottom: 12px;">Was unsere Nutzer sagen</h2>
+ <p style="color: rgba(255,255,255,0.85); max-width: 520px; margin: 0 auto; line-height: 1.7;">Erfahrungen von Unternehmen, die unsere Lösung nutzen.</p>
+ </div>
+ <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+ <div class="card-lift" style="background: rgba(255,255,255,0.12); border-radius: 20px; padding: 32px; border: 1px solid rgba(255,255,255,0.2);">
+ <div style="color: rgba(255,255,255,0.9); font-size: 2.2rem; line-height: 1; margin-bottom: 16px;">❝</div>
+ <p style="color: rgba(255,255,255,0.88); line-height: 1.7; margin-bottom: 24px; font-style: italic; font-size: 0.97rem;">"Die automatische Analyse spart uns täglich Stunden an manueller Arbeit. Einfach unverzichtbar!"</p>
+ <div style="display: flex; align-items: center; gap: 12px;">
+ <img style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" src="https://cdn.hubblecontent.osi.office.net/m365content/publish/3f7ff629-8bca-494c-8a11-7f4e6302983f/thumbnails/xxlarge.jpg" alt="Maximilian Bauer">
+ <div>
+ <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">Maximilian Bauer</div>
+ <div style="color: rgba(255,255,255,0.65); font-size: 0.8rem;">IT-Leiter, TechFirma GmbH</div>
+ </div>
+ </div>
+ </div>
+ <div class="card-lift" style="background: rgba(255,255,255,0.12); border-radius: 20px; padding: 32px; border: 1px solid rgba(255,255,255,0.2);">
+ <div style="color: rgba(255,255,255,0.9); font-size: 2.2rem; line-height: 1; margin-bottom: 16px;">❝</div>
+ <p style="color: rgba(255,255,255,0.88); line-height: 1.7; margin-bottom: 24px; font-style: italic; font-size: 0.97rem;">"Die Archivierung ist sicher und übersichtlich. Wir finden alle Dokumente schnell wieder."</p>
+ <div style="display: flex; align-items: center; gap: 12px;">
+ <img style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" src="https://cdn.hubblecontent.osi.office.net/m365content/publish/9f54dfe2-3496-44fc-aebb-9d90a293b069/thumbnails/xxlarge.jpg" alt="Julia Neumann">
+ <div>
+ <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">Julia Neumann</div>
+ <div style="color: rgba(255,255,255,0.65); font-size: 0.8rem;">Büroleitung, FinanzConsult AG</div>
+ </div>
+ </div>
+ </div>
+ <div class="card-lift" style="background: rgba(255,255,255,0.12); border-radius: 20px; padding: 32px; border: 1px solid rgba(255,255,255,0.2);">
+ <div style="color: rgba(255,255,255,0.9); font-size: 2.2rem; line-height: 1; margin-bottom: 16px;">❝</div>
+ <p style="color: rgba(255,255,255,0.88); line-height: 1.7; margin-bottom: 24px; font-style: italic; font-size: 0.97rem;">"Die Integration in unsere Systeme war unkompliziert und der Support sehr hilfsbereit."</p>
+ <div style="display: flex; align-items: center; gap: 12px;">
+ <img style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" src="https://cdn.hubblecontent.osi.office.net/m365content/publish/6d618df1-94b5-4e0c-982b-6ba0c6a68d61/thumbnails/xxlarge.jpg" alt="Leon Schmidt">
+ <div>
+ <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">Leon Schmidt</div>
+ <div style="color: rgba(255,255,255,0.65); font-size: 0.8rem;">Projektmanager, LogistikPlus</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<div class="row sectionBlockLayout sec-5" data-component-theme="portalThemeColor4"
+ style="display: flex; flex-wrap: wrap; min-height: auto; clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-6 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 40px;">
+ <span style="font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.75); font-weight: 600; display: block; margin-bottom: 10px;">Warum wir</span>
+ <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #fff; margin-bottom: 24px;">Ihre Vorteile mit unserem System</h2>
+ <div style="display: flex; flex-direction: column; gap: 16px;">
+ <div style="display: flex; gap: 14px; align-items: flex-start;">
+ <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">✓</div>
+ <div>
+ <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Zeitersparnis</div>
+ <div style="color: rgba(255,255,255,0.8); font-size: 0.92rem; line-height: 1.6;">Automatisierte Prozesse reduzieren manuelle Arbeit erheblich.</div>
+ </div>
+ </div>
+ <div style="display: flex; gap: 14px; align-items: flex-start;">
+ <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">✓</div>
+ <div>
+ <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Zuverlässigkeit</div>
+ <div style="color: rgba(255,255,255,0.8); font-size: 0.92rem; line-height: 1.6;">Hohe Genauigkeit bei der Datenextraktion und Archivierung.</div>
+ </div>
+ </div>
+ <div style="display: flex; gap: 14px; align-items: flex-start;">
+ <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">✓</div>
+ <div>
+ <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Sicherheit</div>
+ <div style="color: rgba(255,255,255,0.8); font-size: 0.92rem; line-height: 1.6;">Ihre Dokumente sind geschützt und nur für autorisierte Nutzer zugänglich.</div>
+ </div>
+ </div>
+ <div style="display: flex; gap: 14px; align-items: flex-start;">
+ <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">✓</div>
+ <div>
+ <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Skalierbarkeit</div>
+ <div style="color: rgba(255,255,255,0.8); font-size: 0.92rem; line-height: 1.6;">Wächst mit Ihrem Unternehmen und Ihren Anforderungen.</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ <div class="col-md-6 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 40px;">
+ <img style="width: 100%; height: auto; border-radius: 20px; box-shadow: 0 20px 56px rgba(0,0,0,0.2);" class="anim-fade" src="https://cdn.hubblecontent.osi.office.net/m365content/publish/62d22bad-70ad-4f86-8281-29a2568eb9c4/thumbnails/xxlarge.jpg" alt="Dokumentenverarbeitungsworkflow">
+ </div>
+ </div>
+</div>
+
+<div class="row sectionBlockLayout sec-6" data-component-theme="portalThemeColor8"
+ style="display: flex; flex-wrap: wrap; min-height: auto;">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-12 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column;
+ align-items: center; text-align: center; padding: 72px 48px;">
+ <h2 style="font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 700; color: #fff; margin-bottom: 16px;">Bereit, Ihre Dokumente effizient zu verwalten?</h2>
+ <p style="color: rgba(255,255,255,0.85); max-width: 500px; line-height: 1.7; margin-bottom: 36px; padding: 8px 0;">Starten Sie jetzt mit unserem Dokument Management System und optimieren Sie Ihre Arbeitsabläufe.</p>
+ <button class="button1" style="background: rgba(255,255,255,0.5); color: var(--brand); border: none; border-radius: 999px; padding: 14px 40px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">Jetzt Registrieren</button>
+ </div>
+ </div>
+</div>
+
+<div class="row sectionBlockLayout sec-7" data-component-theme="portalThemeColor7"
+ style="display: flex; flex-wrap: wrap; min-height: auto;">
+ <div class="container" style="display: flex; flex-wrap: wrap; width: 100%;">
+ <div class="col-md-12 columnBlockLayout"
+ style="flex-grow: 1; display: flex; flex-direction: column; padding: 64px 40px;">
+ <div style="text-align: center; margin-bottom: 48px;">
+ <span style="font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.75); font-weight: 600; display: block; margin-bottom: 10px;">Kontakt</span>
+ <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #fff; margin-bottom: 12px;">Fragen? Wir helfen gerne weiter!</h2>
+ <p style="color: rgba(255,255,255,0.85); max-width: 520px; margin: 0 auto; line-height: 1.7;">Kontaktieren Sie unser Support-Team für individuelle Beratung und technische Unterstützung.</p>
+ </div>
+ {%- entityform name: "Kontaktformular" -%}
+ </div>
+ </div>
+</div>

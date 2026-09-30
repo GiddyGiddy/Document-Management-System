@@ -1,206 +1,378 @@
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content below * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * Delete the template below * * * * * * * * * -->
-<!-- * * * * * * * to get started with your project! * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-
 <style>
   :host {
-    --bright-blue: oklch(51.01% 0.274 263.83);
-    --electric-violet: oklch(53.18% 0.28 296.97);
-    --french-violet: oklch(47.66% 0.246 305.88);
-    --vivid-pink: oklch(69.02% 0.277 332.77);
-    --hot-red: oklch(61.42% 0.238 15.34);
-    --orange-red: oklch(63.32% 0.24 31.68);
-
-    --gray-900: oklch(19.37% 0.006 300.98);
-    --gray-700: oklch(36.98% 0.014 302.71);
-    --gray-400: oklch(70.9% 0.015 304.04);
-
-    --red-to-pink-to-purple-vertical-gradient: linear-gradient(
-      180deg,
-      var(--orange-red) 0%,
-      var(--vivid-pink) 50%,
-      var(--electric-violet) 100%
-    );
-
-    --red-to-pink-to-purple-horizontal-gradient: linear-gradient(
-      90deg,
-      var(--orange-red) 0%,
-      var(--vivid-pink) 50%,
-      var(--electric-violet) 100%
-    );
-
-    --pill-accent: var(--bright-blue);
-
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-      "Segoe UI Symbol";
-    box-sizing: border-box;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    --ink: #0a1a2a;
+    --ink-soft: #143d59;
+    --orange: #f57c00;
+    --paper: #f4f0e9;
     display: block;
-    height: 100dvh;
-  }
-
-  h1 {
-    font-size: 3.125rem;
-    color: var(--gray-900);
-    font-weight: 500;
-    line-height: 100%;
-    letter-spacing: -0.125rem;
-    margin: 0;
-    font-family: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-      "Segoe UI Symbol";
-  }
-
-  p {
-    margin: 0;
-    color: var(--gray-700);
-  }
-
-  main {
-    width: 100%;
     min-height: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding: 1rem;
-    box-sizing: inherit;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  .site-shell {
+    overflow: hidden;
+    background: var(--paper);
+  }
+
+  .hero {
     position: relative;
+    min-height: 660px;
+    padding: 28px clamp(24px, 6vw, 88px) 92px;
+    color: #fff;
+    background:
+      linear-gradient(120deg, rgba(10, 26, 42, 0.98), rgba(20, 61, 89, 0.82)),
+      radial-gradient(circle at 86% 18%, rgba(245, 124, 0, 0.58), transparent 27%),
+      var(--ink);
   }
 
-  .angular-logo {
-    max-width: 9.2rem;
+  .hero::after {
+    content: '';
+    position: absolute;
+    right: -10%;
+    bottom: -25%;
+    width: 48vw;
+    height: 48vw;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    box-shadow: 0 0 0 42px rgba(255, 255, 255, 0.03), 0 0 0 84px rgba(255, 255, 255, 0.025);
+    pointer-events: none;
   }
 
-  .content {
-    display: flex;
-    justify-content: space-around;
-    width: 100%;
-    max-width: 700px;
-    margin-bottom: 3rem;
+  .nav,
+  .hero-content,
+  .section-inner {
+    position: relative;
+    z-index: 1;
+    width: min(1180px, 100%);
+    margin: 0 auto;
   }
 
-  .content h1 {
-    margin-top: 1.75rem;
-  }
-
-  .content p {
-    margin-top: 1.5rem;
-  }
-
-  .divider {
-    width: 1px;
-    background: var(--red-to-pink-to-purple-vertical-gradient);
-    margin-inline: 0.5rem;
-  }
-
-  .pill-group {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-  }
-
-  .pill {
+  .nav {
     display: flex;
     align-items: center;
-    --pill-accent: var(--bright-blue);
-    background: color-mix(in srgb, var(--pill-accent) 5%, transparent);
-    color: var(--pill-accent);
-    padding-inline: 0.75rem;
-    padding-block: 0.375rem;
-    border-radius: 2.75rem;
-    border: 0;
-    transition: background 0.3s ease;
-    font-family: var(--inter-font);
-    font-size: 0.875rem;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 1.4rem;
-    letter-spacing: -0.00875rem;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 92px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .brand-mark {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--orange);
+    color: var(--ink);
+    font-size: 1.2rem;
+  }
+
+  .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.9rem;
+    font-weight: 600;
     text-decoration: none;
-    white-space: nowrap;
   }
 
-  .pill:hover {
-    background: color-mix(in srgb, var(--pill-accent) 15%, transparent);
+  .hero-content {
+    max-width: 720px;
   }
 
-  .pill-group .pill:nth-child(6n + 1) {
-    --pill-accent: var(--bright-blue);
-  }
-  .pill-group .pill:nth-child(6n + 2) {
-    --pill-accent: var(--electric-violet);
-  }
-  .pill-group .pill:nth-child(6n + 3) {
-    --pill-accent: var(--french-violet);
-  }
-
-  .pill-group .pill:nth-child(6n + 4),
-  .pill-group .pill:nth-child(6n + 5),
-  .pill-group .pill:nth-child(6n + 6) {
-    --pill-accent: var(--hot-red);
+  .eyebrow {
+    margin: 0 0 18px;
+    color: #ffb65c;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
   }
 
-  .pill-group svg {
-    margin-inline-start: 0.25rem;
+  .hero h1 {
+    max-width: 700px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2.7rem, 7vw, 5.7rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 0.98;
   }
 
-  .social-links {
+  .hero-copy {
+    max-width: 570px;
+    margin: 28px 0 36px;
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 1.08rem;
+    line-height: 1.7;
+  }
+
+  .hero-actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .button {
+    display: inline-flex;
     align-items: center;
-    gap: 0.73rem;
-    margin-top: 1.5rem;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 24px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
   }
 
-  .social-links path {
-    transition: fill 0.3s ease;
-    fill: var(--gray-400);
+  .button:hover {
+    transform: translateY(-2px);
   }
 
-  .social-links a:hover svg path {
-    fill: var(--gray-900);
+  .button-primary {
+    background: var(--orange);
+    color: var(--ink);
+    box-shadow: 0 12px 28px rgba(245, 124, 0, 0.25);
   }
 
-  @media screen and (max-width: 650px) {
-    .content {
-      flex-direction: column;
-      width: max-content;
+  .button-secondary {
+    border-color: rgba(255, 255, 255, 0.32);
+    background: transparent;
+    color: #fff;
+  }
+
+  .section {
+    padding: 94px clamp(24px, 6vw, 88px);
+  }
+
+  .section-dark {
+    background: var(--ink);
+    color: #fff;
+  }
+
+  .section-heading {
+    max-width: 590px;
+    margin-bottom: 42px;
+  }
+
+  .section-heading h2 {
+    margin: 0 0 14px;
+    color: inherit;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+
+  .section-heading p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.7;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .feature-card {
+    min-height: 210px;
+    padding: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.07);
+    transition: transform 200ms ease, background 200ms ease;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.11);
+  }
+
+  .feature-icon {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 28px;
+    place-items: center;
+    border-radius: 13px;
+    background: var(--orange);
+    color: var(--ink);
+    font-size: 1.2rem;
+  }
+
+  .feature-card h3 {
+    margin: 0 0 9px;
+    font-size: 1.08rem;
+  }
+
+  .feature-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.67);
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+
+  .upload-section {
+    background: #fff;
+  }
+
+  .upload-section .section-heading p {
+    color: #53616d;
+  }
+
+  .upload-section .eyebrow {
+    color: #c15d00;
+  }
+
+  app-file-upload {
+    display: block;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    padding-top: 28px;
+  }
+
+  .stat {
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .stat strong {
+    display: block;
+    color: var(--orange);
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    line-height: 1;
+  }
+
+  .stat span {
+    display: block;
+    margin-top: 10px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 760px) {
+    .hero {
+      min-height: 600px;
+      padding-top: 20px;
     }
 
-    .divider {
-      height: 1px;
+    .nav {
+      padding-bottom: 72px;
+    }
+
+    .feature-grid,
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .section {
+      padding-top: 72px;
+      padding-bottom: 72px;
+    }
+  }
+
+  @media (max-width: 460px) {
+    .nav-link {
+      display: none;
+    }
+
+    .hero h1 {
+      font-size: 2.8rem;
+    }
+
+    .button {
       width: 100%;
-      background: var(--red-to-pink-to-purple-horizontal-gradient);
-      margin-block: 1.5rem;
     }
   }
 </style>
 
-<main class="main">
-  
- <div id="activities">
-  <h1>{{ title() }}</h1>
-  <p>Laden Sie Ihre Dokumente hoch und verwalten Sie sie ganz einfach.</p>
-</div>
-  <app-file-upload></app-file-upload>
+<main class="site-shell">
+  <section class="hero">
+    <nav class="nav" aria-label="Main navigation">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">D</span> Documenta</div>
+      <a class="nav-link" href="#upload">Workspace öffnen <span aria-hidden="true">↗</span></a>
+    </nav>
 
+    <div class="hero-content">
+      <p class="eyebrow">Dokumentenmanagement neu gedacht</p>
+      <h1>Weniger suchen. Mehr erledigen.</h1>
+      <p class="hero-copy">Laden Sie Dokumente sicher hoch, behalten Sie den Überblick und machen Sie aus Dateien verlässliche Arbeitsabläufe.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="#upload">Dokument hochladen <span aria-hidden="true">&nbsp;→</span></a>
+        <a class="button button-secondary" href="#features">Mehr erfahren</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-dark" id="features">
+    <div class="section-inner">
+      <div class="section-heading">
+        <p class="eyebrow">Ein klarer Weg durch Ihre Dateien</p>
+        <h2>Ordnung, die mit Ihrem Alltag Schritt hält.</h2>
+        <p>Die wichtigsten Werkzeuge für einen ruhigen, nachvollziehbaren Dokumenten-Workflow an einem Ort.</p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">↑</div>
+          <h3>Sicherer Upload</h3>
+          <p>Dokumente schnell und zuverlässig in Ihren geschützten Arbeitsbereich bringen.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">⌕</div>
+          <h3>Schneller Überblick</h3>
+          <p>Finden Sie hochgeladene Dateien wieder, ohne sich durch Ordnerstrukturen zu kämpfen.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">✓</div>
+          <h3>Verlässliche Ablage</h3>
+          <p>Ein zentraler Ort für Ihre Dokumente, Statusinformationen und nächsten Schritte.</p>
+        </article>
+      </div>
+
+      <div class="stats" aria-label="System highlights">
+        <div class="stat"><strong>5 MB</strong><span>Maximale Dateigröße</span></div>
+        <div class="stat"><strong>24/7</strong><span>Verfügbarkeit Ihrer Ablage</span></div>
+        <div class="stat"><strong>1 Ort</strong><span>Für Ihren gesamten Dokumentenfluss</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section upload-section" id="upload">
+    <div class="section-inner">
+      <div class="section-heading">
+        <p class="eyebrow">Ihr Workspace</p>
+        <h2>Starten Sie mit dem nächsten Dokument.</h2>
+        <p>Wählen Sie eine Datei aus und verwalten Sie Ihre Uploads direkt in diesem Arbeitsbereich.</p>
+      </div>
+      <app-file-upload></app-file-upload>
+    </div>
+  </section>
 </main>
-
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
 
 
 

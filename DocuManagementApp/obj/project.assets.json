@@ -3371,9 +3371,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\angular_asp_core_web_api\\DocuManagementApp\\WebApplication1.csproj",
-      "projectName": "WebApplication1",
-      "projectPath": "C:\\angular_asp_core_web_api\\DocuManagementApp\\WebApplication1.csproj",
+      "projectUniqueName": "C:\\angular_asp_core_web_api\\DocuManagementApp\\DocuManagementApp.csproj",
+      "projectName": "DocuManagementApp",
+      "projectPath": "C:\\angular_asp_core_web_api\\DocuManagementApp\\DocuManagementApp.csproj",
       "packagesPath": "C:\\Users\\gideon.ayodele\\.nuget\\packages\\",
       "outputPath": "C:\\angular_asp_core_web_api\\DocuManagementApp\\obj\\",
       "projectStyle": "PackageReference",

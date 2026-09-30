@@ -11,6 +11,22 @@
 
         <p class="file-meta">{{ selectedFileName }}</p>
 
+        <label class="archive-option">
+            <input
+                type="checkbox"
+                [checked]="archiveAsPdfA"
+                [disabled]="isUploading || !canArchiveAsPdfA"
+                (change)="setArchiveAsPdfA($event)"
+            />
+            <span>
+                <strong>Als PDF/A archivieren</strong>
+                <small>Erstellt eine separate PDF/A-Kopie. Das Original bleibt erhalten.</small>
+            </span>
+        </label>
+        <p class="archive-note" *ngIf="fileToUpload && !canArchiveAsPdfA">
+            PDF/A-Archivierung ist für Word-, Excel- und OpenDocument-Dateien verfügbar.
+        </p>
+
         <div class="actions">
             <button type="button" (click)="uploadFileToActivity()" [disabled]="!fileToUpload || isUploading">
                 {{ isUploading ? 'Uploading...' : 'Upload' }}
@@ -21,6 +37,7 @@
         </div>
 
         <p class="status success">{{ successMessage }}</p>
+        <p class="status warning">{{ warningMessage }}</p>
         <p class="status error">{{ errorMessage }}</p>
     </div>
 
@@ -40,12 +57,15 @@
             <li *ngFor="let file of uploadedFiles">
                 <div class="file-name">
                     <a
-                        *ngIf="isPdf(file); else plainFileName"
+                        *ngIf="getFileKind(file) !== 'other'; else plainFileName"
                         [href]="getFileUrl(file)"
                         target="_blank"
                         rel="noopener"
                     >{{ file.originalFileName }}</a>
-                    <ng-template #plainFileName>{{ file.originalFileName }}</ng-template>
+                    <ng-template #plainFileName>
+                        <a [href]="getFileUrl(file)" download="{{ file.originalFileName }}">{{ file.originalFileName }}</a>
+                        <span class="file-meta"> (no in-browser preview, downloads instead)</span>
+                    </ng-template>
                 </div>
                 <div class="file-details">
                     <span>{{ formatSize(file.size) }}</span>

@@ -19,13 +19,20 @@ export interface UploadedFileInfo {
   uploadedAt: string;
 }
 
+export interface UploadReceipt {
+  id: string;
+  originalFileName: string;
+  storedFileName: string;
+  size: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class FileUploadService {
   constructor(private httpClient: HttpClient) { }
 
-  postFile(fileToUpload: File): Observable<boolean> {
+  postFile(fileToUpload: File): Observable<UploadReceipt | null> {
     const endpoint = `${environment.apiURL}/fileupload/upload`;
     return from(fileToUpload.arrayBuffer()).pipe(
       switchMap((buffer: ArrayBuffer) => {
@@ -37,10 +44,23 @@ export class FileUploadService {
           contentType: fileToUpload.type || 'application/octet-stream',
         };
       console.log('Uploading file to endpoint:', endpoint, 'with payload:', payload);
-        return this.httpClient.post(endpoint, payload);
+        return this.httpClient.post<UploadReceipt>(endpoint, payload);
       }),
+      catchError((error) => {
+        console.error('File upload error:', error);
+        return of(null);
+      })
+    );
+  }
+
+  archiveAsPdfA(documentId: string): Observable<boolean> {
+    const endpoint = `${environment.apiURL}/fileupload/${encodeURIComponent(documentId)}/convert-to-pdf?toPdfA=true`;
+    return this.httpClient.post(endpoint, {}).pipe(
       map(() => true),
-      catchError((e) => this.handleError(e))
+      catchError((error) => {
+        console.error('PDF/A archiving failed:', error);
+        return of(false);
+      })
     );
   }
 
@@ -56,10 +76,5 @@ export class FileUploadService {
 
   getFileUrl(storedFileName: string): string {
     return `${environment.apiURL}/fileupload/download/${encodeURIComponent(storedFileName)}`;
-  }
-
-  private handleError(error: any): Observable<boolean> {
-    console.error('File upload error:', error);
-    return of(false);
   }
 }

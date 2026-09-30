@@ -18,6 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
 builder.Services.AddTransient<PdfADocumentService>();
+builder.Services.AddSingleton<IOfficeToPdfConversionService, OfficeToPdfConversionService>();
 
 builder.Services.AddCors(options =>
 {

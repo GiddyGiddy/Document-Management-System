@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+wqfaMX8wlI=",
+  "dgSpecHash": "OdVctZhmgR4=",
   "success": true,
-  "projectFilePath": "C:\\angular_asp_core_web_api\\DocuManagementApp\\WebApplication1.csproj",
+  "projectFilePath": "C:\\angular_asp_core_web_api\\DocuManagementApp\\DocuManagementApp.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\gideon.ayodele\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\gideon.ayodele\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.14\\microsoft.aspnetcore.openapi.9.0.14.nupkg.sha512",

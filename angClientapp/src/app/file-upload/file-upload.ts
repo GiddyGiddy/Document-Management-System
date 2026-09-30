@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { map, of, switchMap } from 'rxjs';
 import { FileUploadService, UploadedFileInfo } from '../file-upload.service';
 
 interface FileUploadError {
@@ -18,11 +19,14 @@ export class FileUpload implements OnInit {
 
   fileToUpload: File | null = null;
   uploadedFiles: UploadedFileInfo[] = [];
+  archiveAsPdfA = false;
   readonly maxFileSizeBytes = 5 * 1024 * 1024;
+  private readonly pdfaSupportedExtensions = ['doc', 'docx', 'rtf', 'odt', 'xls', 'xlsx', 'ods'];
   isUploading = false;
   isLoadingFiles = false;
   errorMessage = '';
   successMessage = '';
+  warningMessage = '';
 
   constructor(
     private fileUploadService: FileUploadService,
@@ -37,6 +41,11 @@ export class FileUpload implements OnInit {
     return this.fileToUpload?.name ?? 'No file selected';
   }
 
+  get canArchiveAsPdfA(): boolean {
+    const extension = this.fileToUpload?.name.toLowerCase().split('.').pop() ?? '';
+    return this.pdfaSupportedExtensions.includes(extension);
+  }
+
   onFileSelected(event: Event): void {
      console.log('File selected event:', event);
     const input = event.target as HTMLInputElement | null;
@@ -48,28 +57,40 @@ export class FileUpload implements OnInit {
   handleFileInput(file: File | null): void {
     this.successMessage = '';
     this.errorMessage = '';
+    this.warningMessage = '';
 
      console.log('Uploading file to:', file);
     if (!file) {
       this.fileToUpload = null;
+      this.archiveAsPdfA = false;
       console.log('No file selected.');
       return;
     }
 
     if (file.size > this.maxFileSizeBytes) {
       this.fileToUpload = null;
+      this.archiveAsPdfA = false;
       this.errorMessage = 'File is too large. Maximum allowed size is 5 MB.';
       console.log('File is too large:', file.size, 'bytes');
       return;
     }
 
     this.fileToUpload = file;
+    if (!this.canArchiveAsPdfA) {
+      this.archiveAsPdfA = false;
+    }
+  }
+
+  setArchiveAsPdfA(event: Event): void {
+    this.archiveAsPdfA = (event.target as HTMLInputElement).checked;
   }
 
   clearSelection(input: HTMLInputElement): void {
     this.fileToUpload = null;
+    this.archiveAsPdfA = false;
     this.errorMessage = '';
     this.successMessage = '';
+    this.warningMessage = '';
     input.value = '';
   }
 
@@ -77,21 +98,40 @@ export class FileUpload implements OnInit {
     if (!this.fileToUpload || this.isUploading) {
       return;
     }
-   console.log('Uploading file to:', this.fileToUpload);
+
+    const shouldArchiveAsPdfA = this.archiveAsPdfA;
     this.isUploading = true;
     this.successMessage = '';
     this.errorMessage = '';
-   console.log('Uploading file to:2', this.fileToUpload);
-    this.fileUploadService.postFile(this.fileToUpload).subscribe({
-      next: (ok: boolean) => {
+    this.warningMessage = '';
+
+    this.fileUploadService.postFile(this.fileToUpload).pipe(
+      switchMap((upload) => {
+        if (!upload) {
+          return of({ uploaded: false, archived: false });
+        }
+        if (!shouldArchiveAsPdfA) {
+          return of({ uploaded: true, archived: false });
+        }
+        return this.fileUploadService.archiveAsPdfA(upload.id).pipe(
+          map((archived) => ({ uploaded: true, archived }))
+        );
+      })
+    ).subscribe({
+      next: ({ uploaded, archived }) => {
         this.isUploading = false;
 
-        if (ok) {
-          this.successMessage = 'File uploaded successfully.';
+        if (uploaded) {
+          const successMessage = archived
+            ? 'Upload complete. The original and PDF/A archive are available.'
+            : 'File uploaded successfully.';
           if (this.fileInputRef?.nativeElement) {
             this.clearSelection(this.fileInputRef.nativeElement);
-            this.successMessage = 'File uploaded successfully.';
           }
+          this.successMessage = successMessage;
+          this.warningMessage = shouldArchiveAsPdfA && !archived
+            ? 'The original was uploaded, but PDF/A archiving failed.'
+            : '';
           this.loadUploadedFiles();
           this.cdr.detectChanges();
           return;
@@ -103,7 +143,7 @@ export class FileUpload implements OnInit {
       error: (error: FileUploadError) => {
         this.isUploading = false;
         this.errorMessage = 'Upload failed. Please try again.';
-        console.log('File upload error:', error);
+        console.error('File upload error:', error);
         this.cdr.detectChanges();
       },
     });
@@ -136,8 +176,23 @@ export class FileUpload implements OnInit {
     return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  isPdf(file: UploadedFileInfo): boolean {
-    return file.originalFileName.toLowerCase().endsWith('.pdf');
+  // Drives which inline preview markup the template renders for a given file.
+  getFileKind(file: UploadedFileInfo): 'pdf' | 'image' | 'video' | 'audio' | 'other' {
+    const extension = file.originalFileName.toLowerCase().split('.').pop() ?? '';
+
+    if (extension === 'pdf') {
+      return 'pdf';
+    }
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp'].includes(extension)) {
+      return 'image';
+    }
+    if (['mp4', 'mkv'].includes(extension)) {
+      return 'video';
+    }
+    if (extension === 'mp3') {
+      return 'audio';
+    }
+    return 'other';
   }
 
   getFileUrl(file: UploadedFileInfo): string {
