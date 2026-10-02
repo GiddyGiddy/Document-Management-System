@@ -35,12 +35,6 @@ public sealed class DocumentDownloadResult
 
 public interface IDocumentStorageService
 {
-  Task<StoredDocumentResult> SaveDocumentAsync(
-    string originalFileName,
-    byte[] content,
-    string? contentType,
-    CancellationToken cancellationToken,
-    DocumentOutputFormat requestedOutputFormat = DocumentOutputFormat.Original);
   Task<IReadOnlyList<DocumentListItem>> GetDocumentsAsync(CancellationToken cancellationToken);
   Task<DocumentDownloadResult?> GetDocumentByIdAsync(Guid id, CancellationToken cancellationToken);
 }
@@ -52,40 +46,6 @@ public sealed class DocumentStorageService : IDocumentStorageService
   public DocumentStorageService(AppDbContext dbContext)
   {
     _dbContext = dbContext;
-  }
-
-  public async Task<StoredDocumentResult> SaveDocumentAsync(
-    string originalFileName,
-    byte[] content,
-    string? contentType,
-    CancellationToken cancellationToken,
-    DocumentOutputFormat requestedOutputFormat = DocumentOutputFormat.Original)
-  {
-    var resolvedContentType = string.IsNullOrWhiteSpace(contentType)
-      ? ResolveContentTypeForExtension(originalFileName)
-      : contentType;
-
-    var document = new DocumentRecord
-    {
-      OriginalFileName = originalFileName,
-      ContentType = resolvedContentType,
-      FileContent = content,
-      SizeBytes = content.Length,
-      UploadedAtUtc = DateTimeOffset.UtcNow,
-      ProcessingStatus = DocumentProcessingStatus.Completed,
-      RequestedOutputFormat = requestedOutputFormat,
-      ProcessingCompletedAtUtc = DateTimeOffset.UtcNow
-    };
-
-    _dbContext.Documents.Add(document);
-    await _dbContext.SaveChangesAsync(cancellationToken);
-
-    return new StoredDocumentResult
-    {
-      Id = document.Id,
-      OriginalFileName = document.OriginalFileName,
-      Size = document.SizeBytes
-    };
   }
 
   // Shared so the download endpoint can also fix up legacy octet-stream uploads by extension.

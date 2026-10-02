@@ -17,6 +17,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
+builder.Services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
 builder.Services.AddTransient<PdfADocumentService>();
 builder.Services.AddSingleton<IPdfAProcessRunner, PdfAProcessRunner>();
 builder.Services.AddSingleton<IOfficeToPdfConversionService, OfficeToPdfConversionService>();

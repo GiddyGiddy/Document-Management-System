@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { map, of, switchMap } from 'rxjs';
 import { FileUploadService, UploadedFileInfo } from '../file-upload.service';
 
 interface FileUploadError {
@@ -160,23 +159,12 @@ export class FileUpload implements OnInit {
     this.errorMessage = '';
     this.warningMessage = '';
 
-    this.fileUploadService.postFile(this.fileToUpload).pipe(
-      switchMap((upload) => {
-        if (!upload) {
-          return of({ uploaded: false, archived: false });
-        }
-        if (!shouldArchiveAsPdfA) {
-          return of({ uploaded: true, archived: false });
-        }
-        return this.fileUploadService.archiveAsPdfA(upload.id).pipe(
-          map((archived) => ({ uploaded: true, archived }))
-        );
-      })
-    ).subscribe({
-      next: ({ uploaded, archived }) => {
+    this.fileUploadService.postFile(this.fileToUpload, shouldArchiveAsPdfA).subscribe({
+      next: (upload) => {
         this.isUploading = false;
 
-        if (uploaded) {
+        if (upload) {
+          const archived = upload.requestedOutputFormat === 'PdfA';
           const successMessage = archived
             ? 'Upload complete. The original and PDF/A archive are available.'
             : 'File uploaded successfully.';
@@ -184,9 +172,7 @@ export class FileUpload implements OnInit {
             this.clearSelection(this.fileInputRef.nativeElement);
           }
           this.successMessage = successMessage;
-          this.warningMessage = shouldArchiveAsPdfA && !archived
-            ? 'The original was uploaded, but PDF/A archiving failed.'
-            : '';
+          this.warningMessage = '';
           this.loadUploadedFiles();
           this.cdr.detectChanges();
           return;

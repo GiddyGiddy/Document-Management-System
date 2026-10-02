@@ -87,28 +87,30 @@ describe('FileUpload', () => {
     expect(component.successMessage).toBe('File uploaded successfully.');
   });
 
-  it('uploads and archives the document when PDF/A is selected', () => {
-    component.handleFileInput(new File(['document'], 'report.docx'));
+  it('uploads the source and requested PDF/A rendition in one request', () => {
+    const file = new File(['document'], 'report.docx');
+    component.handleFileInput(file);
     component.archiveAsPdfA = true;
+    fileUploadService.postFile.mockReturnValue(of({ ...uploadReceipt, requestedOutputFormat: 'PdfA' }));
 
     component.uploadFileToActivity();
 
-    expect(fileUploadService.postFile).toHaveBeenCalledOnce();
-    expect(fileUploadService.archiveAsPdfA).toHaveBeenCalledWith(uploadReceipt.id);
+    expect(fileUploadService.postFile).toHaveBeenCalledWith(file, true);
+    expect(fileUploadService.archiveAsPdfA).not.toHaveBeenCalled();
     expect(component.successMessage).toContain('PDF/A archive are available');
     expect(component.warningMessage).toBe('');
   });
 
-  it('keeps upload success and warns when PDF/A archiving fails', () => {
-    fileUploadService.archiveAsPdfA.mockReturnValue(of(false));
+  it('reports a failed atomic PDF/A upload without claiming the original was saved', () => {
+    fileUploadService.postFile.mockReturnValue(of(null));
     component.handleFileInput(new File(['document'], 'report.docx'));
     component.archiveAsPdfA = true;
 
     component.uploadFileToActivity();
 
-    expect(component.successMessage).toBe('File uploaded successfully.');
-    expect(component.warningMessage).toContain('PDF/A archiving failed');
-    expect(component.errorMessage).toBe('');
+    expect(component.successMessage).toBe('');
+    expect(component.errorMessage).toBe('Upload failed. Please try again.');
+    expect(fileUploadService.getUploadedFiles).toHaveBeenCalledOnce();
   });
 
   it('shows an upload error when the upload fails', () => {

@@ -9,15 +9,18 @@ namespace DocuManagementApp.Tests;
 public sealed class FileUploadControllerTests
 {
     private readonly FakeDocumentStorageService _storage = new();
+    private readonly FakeDocumentIngestionService _ingestion;
     private readonly FakeOfficeToPdfConversionService _conversion = new();
     private readonly FakePdfAProcessingService _pdfa = new();
     private readonly FileUploadController _controller;
 
     public FileUploadControllerTests()
     {
+        _ingestion = new FakeDocumentIngestionService(_storage);
         _controller = new FileUploadController(
             NullLogger<FileUploadController>.Instance,
             _storage,
+            _ingestion,
             _conversion,
             _pdfa);
     }
@@ -73,6 +76,34 @@ public sealed class FileUploadControllerTests
         var listedDocument = Assert.Single(_storage.Documents);
         Assert.Equal(DocumentProcessingStatus.Completed.ToString(), listedDocument.ProcessingStatus);
         Assert.Equal(DocumentOutputFormat.Original.ToString(), listedDocument.RequestedOutputFormat);
+        Assert.Equal("document.ingested", Assert.Single(_ingestion.OutboxMessages).EventType);
+    }
+
+    [Fact]
+    public async Task UploadWithPdfARequestIngestsOriginalRenditionAndOutboxTogether()
+    {
+        var result = await _controller.UploadFile(
+            new UploadFileRequest
+            {
+                FileName = "report.pdf",
+                ContentBase64 = Convert.ToBase64String([1, 2, 3]),
+                ContentType = "application/pdf",
+                ArchiveAsPdfA = true
+            },
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(2, _storage.SavedDocuments.Count);
+        Assert.Contains(_storage.SavedDocuments, document => document.FileName == "report.pdf");
+        Assert.Contains(_storage.SavedDocuments, document => document.FileName == "report.pdfa.pdf");
+        var outbox = Assert.Single(_ingestion.OutboxMessages);
+        Assert.Equal("document.ingested", outbox.EventType);
+        Assert.Equal(1, outbox.SchemaVersion);
+        Assert.Contains("PdfA", outbox.Payload);
+        Assert.Contains("report.pdfa.pdf", outbox.Payload);
+        Assert.Equal(0, outbox.AttemptCount);
+        Assert.Null(outbox.PublishedAtUtc);
+        Assert.Equal(_storage.Documents[0].StoredFileName, outbox.DocumentId.ToString());
     }
 
     [Fact]
@@ -203,15 +234,7 @@ public sealed class FileUploadControllerTests
 
         public void AddDocument(Guid id, string fileName, byte[] content)
         {
-            Documents.Add(new DocumentListItem
-            {
-                StoredFileName = id.ToString(),
-                OriginalFileName = fileName,
-                Size = content.Length,
-                UploadedAt = DateTimeOffset.UtcNow,
-                ProcessingStatus = DocumentProcessingStatus.Completed.ToString(),
-                RequestedOutputFormat = DocumentOutputFormat.Original.ToString()
-            });
+            AddStoredDocument(id, fileName, content, DocumentOutputFormat.Original);
             _documents[id] = new DocumentDownloadResult
             {
                 Id = id,
@@ -221,31 +244,35 @@ public sealed class FileUploadControllerTests
             };
         }
 
-        public Task<StoredDocumentResult> SaveDocumentAsync(
-            string originalFileName,
-            byte[] content,
-            string? contentType,
-            CancellationToken cancellationToken,
-            DocumentOutputFormat requestedOutputFormat = DocumentOutputFormat.Original)
+        public StoredDocumentResult AddStoredDocument(Guid id, string fileName, byte[] content, DocumentOutputFormat requestedOutputFormat, string? contentType = null)
         {
-            var id = Guid.NewGuid();
-            SavedDocuments.Add(new SavedDocument(originalFileName, content, contentType));
             Documents.Add(new DocumentListItem
             {
                 StoredFileName = id.ToString(),
-                OriginalFileName = originalFileName,
+                OriginalFileName = fileName,
                 Size = content.Length,
                 UploadedAt = DateTimeOffset.UtcNow,
                 ProcessingStatus = DocumentProcessingStatus.Completed.ToString(),
-                RequestedOutputFormat = requestedOutputFormat.ToString()
+                RequestedOutputFormat = requestedOutputFormat.ToString(),
+                ProcessingCompletedAt = DateTimeOffset.UtcNow
             });
-            return Task.FromResult(new StoredDocumentResult
+            _documents[id] = new DocumentDownloadResult
             {
                 Id = id,
-                OriginalFileName = originalFileName,
-                Size = content.Length
-            });
+                OriginalFileName = fileName,
+                ContentType = contentType ?? DocumentStorageService.ResolveContentTypeForExtension(fileName),
+                Content = content
+            };
+            return new StoredDocumentResult { Id = id, OriginalFileName = fileName, Size = content.Length };
         }
+
+        public void AddIngestedDocument(StoredDocumentResult result, byte[] content, string? contentType)
+        {
+            SavedDocuments.Add(new SavedDocument(result.OriginalFileName, content, contentType));
+            _documents[result.Id].ContentType = contentType ?? "application/octet-stream";
+        }
+
+        public bool ContainsDocument(Guid id) => _documents.ContainsKey(id);
 
         public Task<IReadOnlyList<DocumentListItem>> GetDocumentsAsync(CancellationToken cancellationToken)
         {
@@ -256,6 +283,63 @@ public sealed class FileUploadControllerTests
         {
             _documents.TryGetValue(id, out var document);
             return Task.FromResult(document);
+        }
+
+    }
+
+    private sealed class FakeDocumentIngestionService(FakeDocumentStorageService storage) : IDocumentIngestionService
+    {
+        public List<OutboxMessage> OutboxMessages { get; } = [];
+
+        public Task<DocumentIngestionResult> IngestAsync(
+            Guid? sourceDocumentId,
+            IReadOnlyList<IngestionDocumentInput> documents,
+            DocumentOutputFormat requestedOutputFormat,
+            CancellationToken cancellationToken)
+        {
+            if (sourceDocumentId.HasValue && !storage.ContainsDocument(sourceDocumentId.Value))
+            {
+                throw new InvalidOperationException("Source document not found.");
+            }
+
+            var results = documents.Select(document =>
+            {
+                var saved = storage.AddStoredDocument(
+                    Guid.NewGuid(),
+                    document.OriginalFileName,
+                    document.Content,
+                    requestedOutputFormat,
+                    document.ContentType);
+                storage.AddIngestedDocument(saved, document.Content, document.ContentType);
+                return saved;
+            }).ToArray();
+
+            var documentId = sourceDocumentId ?? results[0].Id;
+            var eventId = Guid.NewGuid();
+            OutboxMessages.Add(new OutboxMessage
+            {
+                Id = eventId,
+                DocumentId = documentId,
+                EventType = "document.ingested",
+                SchemaVersion = 1,
+                Payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    eventId,
+                    eventType = "document.ingested",
+                    schemaVersion = 1,
+                    documentId,
+                    requestedOutputFormat = requestedOutputFormat.ToString(),
+                    documents = results.Select(result => new { documentId = result.Id, result.OriginalFileName })
+                }),
+                CreatedAtUtc = DateTimeOffset.UtcNow
+            });
+
+            return Task.FromResult(new DocumentIngestionResult(
+                documentId,
+                results,
+                eventId,
+                DocumentProcessingStatus.Completed,
+                requestedOutputFormat));
         }
     }
 

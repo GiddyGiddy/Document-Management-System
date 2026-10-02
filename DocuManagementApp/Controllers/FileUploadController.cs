@@ -10,6 +10,7 @@ namespace DocuManagementApp.Controllers
     public string? FileName { get; set; }
     public string? ContentBase64 { get; set; }
     public string? ContentType { get; set; }
+    public bool ArchiveAsPdfA { get; set; }
   }
 
   [ApiController]
@@ -18,17 +19,20 @@ namespace DocuManagementApp.Controllers
   {
     private readonly ILogger<FileUploadController> _logger;
     private readonly IDocumentStorageService _documentStorageService;
+    private readonly IDocumentIngestionService _documentIngestionService;
     private readonly IOfficeToPdfConversionService _officeConversionService;
     private readonly IPdfAProcessingService _pdfaService;
 
     public FileUploadController(
       ILogger<FileUploadController> logger,
       IDocumentStorageService documentStorageService,
+      IDocumentIngestionService documentIngestionService,
       IOfficeToPdfConversionService officeConversionService,
       IPdfAProcessingService pdfaService)
     {
       _logger = logger;
       _documentStorageService = documentStorageService;
+      _documentIngestionService = documentIngestionService;
       _officeConversionService = officeConversionService;
       _pdfaService = pdfaService;
       _logger.LogInformation("FileUploadController instantiated.");
@@ -67,24 +71,100 @@ namespace DocuManagementApp.Controllers
       }
 
       var safeFileName = Path.GetFileName(request.FileName);
-      var savedDocument = await _documentStorageService.SaveDocumentAsync(
-        safeFileName,
-        fileBytes,
-        request.ContentType,
-        cancellationToken);
-
-      _logger.LogInformation("File saved to PostgreSQL with id '{DocumentId}', size: {Size} bytes.", savedDocument.Id, savedDocument.Size);
-
-      return Ok(new
+      var sourceIsPdf = string.Equals(Path.GetExtension(safeFileName), ".pdf", StringComparison.OrdinalIgnoreCase);
+      var documentsToIngest = new List<IngestionDocumentInput>
       {
-        message = "File uploaded successfully.",
-        id = savedDocument.Id,
-        originalFileName = savedDocument.OriginalFileName,
-        storedFileName = savedDocument.Id.ToString(),
-        size = savedDocument.Size,
-        processingStatus = DocumentProcessingStatus.Completed.ToString(),
-        requestedOutputFormat = DocumentOutputFormat.Original.ToString()
-      });
+        new(safeFileName, fileBytes, request.ContentType, DocumentOutputFormat.Original)
+      };
+      var requestedFormat = request.ArchiveAsPdfA ? DocumentOutputFormat.PdfA : DocumentOutputFormat.Original;
+      string? conversionDirectory = null;
+
+      try
+      {
+        if (request.ArchiveAsPdfA)
+        {
+          if (!sourceIsPdf && !_officeConversionService.IsSupportedExtension(safeFileName))
+          {
+            return BadRequest(new { message = "PDF/A archiving is supported for PDF, Word, Excel, and OpenDocument files." });
+          }
+
+          conversionDirectory = Path.Combine(Path.GetTempPath(), "document-ingestion", Guid.NewGuid().ToString("N"));
+          Directory.CreateDirectory(conversionDirectory);
+          var sourcePath = Path.Combine(conversionDirectory, safeFileName);
+          await System.IO.File.WriteAllBytesAsync(sourcePath, fileBytes, cancellationToken);
+
+          string pdfPath;
+          if (sourceIsPdf)
+          {
+            pdfPath = sourcePath;
+          }
+          else
+          {
+            var pdfResult = await _officeConversionService.ConvertToPdfAsync(sourcePath, conversionDirectory, cancellationToken);
+            if (!pdfResult.Success || pdfResult.OutputPdfPath is null)
+            {
+              _logger.LogError("Office conversion failed for uploaded file '{FileName}': {Error}", safeFileName, pdfResult.ErrorMessage);
+              return StatusCode(StatusCodes.Status500InternalServerError, new { message = pdfResult.ErrorMessage ?? "Office-to-PDF conversion failed." });
+            }
+
+            pdfPath = pdfResult.OutputPdfPath;
+          }
+
+          var pdfaPath = Path.Combine(conversionDirectory, Path.GetFileNameWithoutExtension(safeFileName) + ".pdfa.pdf");
+          var pdfaResult = await _pdfaService.ConvertToPdfAAsync(pdfPath, pdfaPath, cancellationToken);
+          if (!pdfaResult.IsCompliant)
+          {
+            _logger.LogError("PDF/A conversion failed for uploaded file '{FileName}': {Report}", safeFileName, pdfaResult.Report);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "PDF/A conversion or validation failed.", report = pdfaResult.Report });
+          }
+
+          var pdfaBytes = await System.IO.File.ReadAllBytesAsync(pdfaPath, cancellationToken);
+          documentsToIngest.Add(new IngestionDocumentInput(
+            Path.GetFileName(pdfaPath),
+            pdfaBytes,
+            "application/pdf",
+            DocumentOutputFormat.PdfA));
+        }
+
+        var ingestion = await _documentIngestionService.IngestAsync(
+          null,
+          documentsToIngest,
+          requestedFormat,
+          cancellationToken);
+        var savedDocument = ingestion.Documents[0];
+
+        _logger.LogInformation(
+          "Ingested document '{DocumentId}' and {RenditionCount} rendition(s); outbox event '{EventId}' committed.",
+          ingestion.DocumentId,
+          ingestion.Documents.Count - 1,
+          ingestion.EventId);
+
+        return Ok(new
+        {
+          message = "File uploaded successfully.",
+          id = savedDocument.Id,
+          originalFileName = savedDocument.OriginalFileName,
+          storedFileName = savedDocument.Id.ToString(),
+          size = savedDocument.Size,
+          processingStatus = ingestion.ProcessingStatus.ToString(),
+          requestedOutputFormat = ingestion.RequestedOutputFormat.ToString(),
+          eventId = ingestion.EventId,
+          renditions = ingestion.Documents.Skip(1).Select(rendition => new
+          {
+            id = rendition.Id,
+            originalFileName = rendition.OriginalFileName,
+            storedFileName = rendition.Id.ToString(),
+            size = rendition.Size
+          })
+        });
+      }
+      finally
+      {
+        if (conversionDirectory is not null)
+        {
+          TryDeleteDirectory(conversionDirectory);
+        }
+      }
     }
 
     [HttpGet("files")]
@@ -173,14 +253,15 @@ namespace DocuManagementApp.Controllers
         var pdfBytes = await System.IO.File.ReadAllBytesAsync(finalPdfPath, cancellationToken);
         var convertedFileName = Path.GetFileNameWithoutExtension(document.OriginalFileName) + (toPdfA ? ".pdfa.pdf" : ".pdf");
 
-        var savedDocument = await _documentStorageService.SaveDocumentAsync(
-          convertedFileName,
-          pdfBytes,
-          "application/pdf",
-          cancellationToken,
-          toPdfA ? DocumentOutputFormat.PdfA : DocumentOutputFormat.Pdf);
+        var requestedFormat = toPdfA ? DocumentOutputFormat.PdfA : DocumentOutputFormat.Pdf;
+        var ingestion = await _documentIngestionService.IngestAsync(
+          id,
+          [new IngestionDocumentInput(convertedFileName, pdfBytes, "application/pdf", requestedFormat)],
+          requestedFormat,
+          cancellationToken);
+        var savedDocument = ingestion.Documents[0];
 
-        _logger.LogInformation("Converted document '{SourceId}' to {Kind} as new document '{NewId}'.", id, toPdfA ? "PDF/A" : "PDF", savedDocument.Id);
+        _logger.LogInformation("Converted document '{SourceId}' to {Kind} as new document '{NewId}', outbox event '{EventId}'.", id, toPdfA ? "PDF/A" : "PDF", savedDocument.Id, ingestion.EventId);
 
         return Ok(new
         {

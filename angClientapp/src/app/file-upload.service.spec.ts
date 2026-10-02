@@ -41,6 +41,7 @@ describe('FileUploadService', () => {
       fileName: 'report.txt',
       contentBase64: 'QUJD',
       contentType: 'text/plain',
+      archiveAsPdfA: false,
     });
 
     request.flush({

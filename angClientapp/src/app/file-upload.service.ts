@@ -10,6 +10,7 @@ interface UploadFileRequest {
   fileName: string;
   contentBase64: string;
   contentType: string;
+  archiveAsPdfA: boolean;
 }
 
 export interface UploadedFileInfo {
@@ -39,7 +40,7 @@ export interface UploadReceipt {
 export class FileUploadService {
   constructor(private httpClient: HttpClient) { }
 
-  postFile(fileToUpload: File): Observable<UploadReceipt | null> {
+  postFile(fileToUpload: File, archiveAsPdfA = false): Observable<UploadReceipt | null> {
     const endpoint = `${environment.apiURL}/fileupload/upload`;
     return from(fileToUpload.arrayBuffer()).pipe(
       switchMap((buffer: ArrayBuffer) => {
@@ -49,6 +50,7 @@ export class FileUploadService {
           fileName: fileToUpload.name,
           contentBase64: btoa(binary),
           contentType: fileToUpload.type || 'application/octet-stream',
+          archiveAsPdfA,
         };
       console.log('Uploading file to endpoint:', endpoint, 'with payload:', payload);
         return this.httpClient.post<UploadReceipt>(endpoint, payload);
