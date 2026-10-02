@@ -3,7 +3,6 @@ C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\fo.net\Core\posts
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\appsettings.Development.json
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\appsettings.json
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.staticwebassets.endpoints.json
-C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.exe
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.deps.json
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.runtimeconfig.json
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.dll
@@ -137,3 +136,4 @@ C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\refint\DocuManage
 C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\DocuManagementApp.pdb
 C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\DocuManagementApp.genruntimeconfig.cache
 C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\ref\DocuManagementApp.dll
+C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.exe

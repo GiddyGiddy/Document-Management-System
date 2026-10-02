@@ -126,6 +126,5 @@ C:\angular_asp_core_web_api\DocuManagementApp.Tests\obj\Debug\net9.0\ref\DocuMan
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.deps.json
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.runtimeconfig.json
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.staticwebassets.endpoints.json
-C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.exe
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.dll
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.pdb
