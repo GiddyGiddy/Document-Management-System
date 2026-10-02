@@ -18,9 +18,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
 builder.Services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
+builder.Services.AddScoped<IOutboxStore, EfOutboxStore>();
 builder.Services.AddTransient<PdfADocumentService>();
 builder.Services.AddSingleton<IPdfAProcessRunner, PdfAProcessRunner>();
 builder.Services.AddSingleton<IOfficeToPdfConversionService, OfficeToPdfConversionService>();
+builder.Services.AddOptions<OutboxPublisherOptions>()
+  .Bind(builder.Configuration.GetSection("RabbitMq"))
+  .Validate(options => !string.IsNullOrWhiteSpace(options.UserName), "RabbitMq:UserName must be supplied through user secrets or environment variables.")
+  .Validate(options => !string.IsNullOrWhiteSpace(options.Password), "RabbitMq:Password must be supplied through user secrets or environment variables.")
+  .Validate(options => options.Port is > 0 and <= 65535, "RabbitMq:Port must be a valid TCP port.")
+  .Validate(options => options.BatchSize > 0 && options.LeaseSeconds > 0 && options.ConfirmTimeoutSeconds > 0, "RabbitMQ batch, lease, and confirm timeout settings must be positive.")
+  .ValidateOnStart();
+builder.Services.AddSingleton<IOutboxEventPublisher, RabbitMqOutboxEventPublisher>();
+builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddHttpClient<IPdfAProcessingService, GhostscriptVeraPdfAProcessingService>(client =>
 {
   client.Timeout = Timeout.InfiniteTimeSpan;

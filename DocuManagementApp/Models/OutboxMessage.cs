@@ -9,5 +9,10 @@ public sealed class OutboxMessage
   public string Payload { get; set; } = "{}";
   public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
   public int AttemptCount { get; set; }
+  public DateTimeOffset? LastAttemptAtUtc { get; set; }
+  public DateTimeOffset? NextAttemptAtUtc { get; set; }
+  public DateTimeOffset? LockedUntilUtc { get; set; }
+  public Guid? LockToken { get; set; }
+  public string? LastError { get; set; }
   public DateTimeOffset? PublishedAtUtc { get; set; }
 }

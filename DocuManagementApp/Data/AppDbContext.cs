@@ -49,14 +49,19 @@ public sealed class AppDbContext : DbContext
       entity.Property(x => x.Payload).HasColumnType("jsonb").IsRequired();
       entity.Property(x => x.CreatedAtUtc).IsRequired();
       entity.Property(x => x.AttemptCount).HasDefaultValue(0).IsRequired();
+      entity.Property(x => x.LastAttemptAtUtc);
+      entity.Property(x => x.NextAttemptAtUtc);
+      entity.Property(x => x.LockedUntilUtc);
+      entity.Property(x => x.LockToken);
+      entity.Property(x => x.LastError).HasMaxLength(4000);
       entity.Property(x => x.PublishedAtUtc);
       entity.HasOne<DocumentRecord>()
         .WithMany()
         .HasForeignKey(x => x.DocumentId)
         .OnDelete(DeleteBehavior.Restrict);
       entity.HasIndex(x => x.DocumentId);
-      entity.HasIndex(x => x.CreatedAtUtc)
-        .HasDatabaseName("IX_outbox_messages_Unpublished_CreatedAtUtc")
+      entity.HasIndex(x => new { x.NextAttemptAtUtc, x.CreatedAtUtc })
+        .HasDatabaseName("IX_outbox_messages_Unpublished_NextAttempt_CreatedAt")
         .HasFilter("\"PublishedAtUtc\" IS NULL");
     });
   }

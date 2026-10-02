@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("DocuManagementApp-LocalDevelopment")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ae24e044e66db80d1aaf675742e042d7837f0bf8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f68f168b509c2a92e77df2dc011fe596a40dc262")]
 [assembly: System.Reflection.AssemblyProductAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

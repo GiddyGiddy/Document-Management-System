@@ -92,10 +92,23 @@ namespace WebApplication1.Data.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("LastError")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset?>("LastAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LockedUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LockToken")
                         .HasColumnType("uuid");
 
                     b.Property<string>("EventType")
@@ -110,13 +123,16 @@ namespace WebApplication1.Data.Migrations
                     b.Property<DateTimeOffset?>("PublishedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("SchemaVersion")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAtUtc")
-                        .HasDatabaseName("IX_outbox_messages_Unpublished_CreatedAtUtc")
+                    b.HasIndex("NextAttemptAtUtc", "CreatedAtUtc")
+                        .HasDatabaseName("IX_outbox_messages_Unpublished_NextAttempt_CreatedAt")
                         .HasFilter("\"PublishedAtUtc\" IS NULL");
 
                     b.HasIndex("DocumentId");
