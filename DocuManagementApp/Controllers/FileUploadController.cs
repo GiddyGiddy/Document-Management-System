@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using DocuManagementApp.Services;
+using DocuManagementApp.Models;
 using System.IO;
 
 namespace DocuManagementApp.Controllers
@@ -80,7 +81,9 @@ namespace DocuManagementApp.Controllers
         id = savedDocument.Id,
         originalFileName = savedDocument.OriginalFileName,
         storedFileName = savedDocument.Id.ToString(),
-        size = savedDocument.Size
+        size = savedDocument.Size,
+        processingStatus = DocumentProcessingStatus.Completed.ToString(),
+        requestedOutputFormat = DocumentOutputFormat.Original.ToString()
       });
     }
 
@@ -174,7 +177,8 @@ namespace DocuManagementApp.Controllers
           convertedFileName,
           pdfBytes,
           "application/pdf",
-          cancellationToken);
+          cancellationToken,
+          toPdfA ? DocumentOutputFormat.PdfA : DocumentOutputFormat.Pdf);
 
         _logger.LogInformation("Converted document '{SourceId}' to {Kind} as new document '{NewId}'.", id, toPdfA ? "PDF/A" : "PDF", savedDocument.Id);
 
@@ -184,7 +188,9 @@ namespace DocuManagementApp.Controllers
           id = savedDocument.Id,
           originalFileName = savedDocument.OriginalFileName,
           storedFileName = savedDocument.Id.ToString(),
-          size = savedDocument.Size
+          size = savedDocument.Size,
+          processingStatus = DocumentProcessingStatus.Completed.ToString(),
+          requestedOutputFormat = (toPdfA ? DocumentOutputFormat.PdfA : DocumentOutputFormat.Pdf).ToString()
         });
       }
       finally

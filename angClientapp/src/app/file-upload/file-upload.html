@@ -76,6 +76,11 @@
                     <span>{{ formatSize(file.size) }}</span>
                     <span>{{ file.uploadedAt | date:'medium' }}</span>
                 </div>
+                <div class="processing-state" [class.state-failed]="file.processingStatus === 'Failed'">
+                    <span>{{ file.processingStatus }}</span>
+                    <span>{{ file.requestedOutputFormat }}</span>
+                </div>
+                <p class="file-failure" *ngIf="file.failureSummary">{{ file.failureSummary }}</p>
                 <div class="file-conversion-actions" *ngIf="canConvertToPdf(file) || canConvertToPdfA(file)">
                     <button
                         *ngIf="canConvertToPdf(file)"

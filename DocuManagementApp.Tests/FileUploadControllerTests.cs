@@ -1,4 +1,5 @@
 using DocuManagementApp.Controllers;
+using DocuManagementApp.Models;
 using DocuManagementApp.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -69,6 +70,9 @@ public sealed class FileUploadControllerTests
         Assert.Equal("report.txt", saved.FileName);
         Assert.Equal(new byte[] { 1, 2, 3 }, saved.Content);
         Assert.Equal("text/plain", saved.ContentType);
+        var listedDocument = Assert.Single(_storage.Documents);
+        Assert.Equal(DocumentProcessingStatus.Completed.ToString(), listedDocument.ProcessingStatus);
+        Assert.Equal(DocumentOutputFormat.Original.ToString(), listedDocument.RequestedOutputFormat);
     }
 
     [Fact]
@@ -157,6 +161,9 @@ public sealed class FileUploadControllerTests
         Assert.Equal("report.pdf", converted.FileName);
         Assert.Equal("application/pdf", converted.ContentType);
         Assert.Equal(new byte[] { 9, 8, 7 }, converted.Content);
+        var pdfListItem = Assert.Single(_storage.Documents.Where(file => file.OriginalFileName == "report.pdf"));
+        Assert.Equal(DocumentProcessingStatus.Completed.ToString(), pdfListItem.ProcessingStatus);
+        Assert.Equal(DocumentOutputFormat.Pdf.ToString(), pdfListItem.RequestedOutputFormat);
 
         var filesResult = Assert.IsType<OkObjectResult>(await _controller.GetUploadedFiles(CancellationToken.None));
         var files = Assert.IsAssignableFrom<IReadOnlyList<DocumentListItem>>(filesResult.Value);
@@ -177,6 +184,9 @@ public sealed class FileUploadControllerTests
         Assert.Equal("report.pdfa.pdf", converted.FileName);
         Assert.Equal("application/pdf", converted.ContentType);
         Assert.Equal(new byte[] { 7, 7, 7 }, converted.Content);
+        var pdfaListItem = Assert.Single(_storage.Documents.Where(file => file.OriginalFileName == "report.pdfa.pdf"));
+        Assert.Equal(DocumentProcessingStatus.Completed.ToString(), pdfaListItem.ProcessingStatus);
+        Assert.Equal(DocumentOutputFormat.PdfA.ToString(), pdfaListItem.RequestedOutputFormat);
 
         var filesResult = Assert.IsType<OkObjectResult>(await _controller.GetUploadedFiles(CancellationToken.None));
         var files = Assert.IsAssignableFrom<IReadOnlyList<DocumentListItem>>(filesResult.Value);
@@ -198,7 +208,9 @@ public sealed class FileUploadControllerTests
                 StoredFileName = id.ToString(),
                 OriginalFileName = fileName,
                 Size = content.Length,
-                UploadedAt = DateTimeOffset.UtcNow
+                UploadedAt = DateTimeOffset.UtcNow,
+                ProcessingStatus = DocumentProcessingStatus.Completed.ToString(),
+                RequestedOutputFormat = DocumentOutputFormat.Original.ToString()
             });
             _documents[id] = new DocumentDownloadResult
             {
@@ -213,7 +225,8 @@ public sealed class FileUploadControllerTests
             string originalFileName,
             byte[] content,
             string? contentType,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            DocumentOutputFormat requestedOutputFormat = DocumentOutputFormat.Original)
         {
             var id = Guid.NewGuid();
             SavedDocuments.Add(new SavedDocument(originalFileName, content, contentType));
@@ -222,7 +235,9 @@ public sealed class FileUploadControllerTests
                 StoredFileName = id.ToString(),
                 OriginalFileName = originalFileName,
                 Size = content.Length,
-                UploadedAt = DateTimeOffset.UtcNow
+                UploadedAt = DateTimeOffset.UtcNow,
+                ProcessingStatus = DocumentProcessingStatus.Completed.ToString(),
+                RequestedOutputFormat = requestedOutputFormat.ToString()
             });
             return Task.FromResult(new StoredDocumentResult
             {

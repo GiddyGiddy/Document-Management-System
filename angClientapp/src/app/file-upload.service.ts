@@ -17,6 +17,11 @@ export interface UploadedFileInfo {
   originalFileName: string;
   size: number;
   uploadedAt: string;
+  processingStatus: 'Received' | 'Processing' | 'Completed' | 'Failed';
+  requestedOutputFormat: 'Original' | 'Pdf' | 'PdfA';
+  processingStartedAt?: string | null;
+  processingCompletedAt?: string | null;
+  failureSummary?: string | null;
 }
 
 export interface UploadReceipt {
@@ -24,6 +29,8 @@ export interface UploadReceipt {
   originalFileName: string;
   storedFileName: string;
   size: number;
+  processingStatus?: 'Received' | 'Processing' | 'Completed' | 'Failed';
+  requestedOutputFormat?: 'Original' | 'Pdf' | 'PdfA';
 }
 
 @Injectable({

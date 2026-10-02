@@ -128,6 +128,8 @@ describe('FileUpload', () => {
       originalFileName: 'report.docx',
       size: 12,
       uploadedAt: '2026-10-01T12:00:00Z',
+      processingStatus: 'Completed',
+      requestedOutputFormat: 'Original',
     };
 
     component.convertUploadedDocument(uploadedDocument, false);
@@ -143,6 +145,8 @@ describe('FileUpload', () => {
       originalFileName: 'report.pdfa.pdf',
       size: 42,
       uploadedAt: '2026-10-01T12:00:00Z',
+      processingStatus: 'Completed',
+      requestedOutputFormat: 'PdfA',
     };
 
     expect(component.getDocumentFormat(archivedDocument)).toBe('PDF/A');
@@ -154,6 +158,8 @@ describe('FileUpload', () => {
       originalFileName: 'report.pdf',
       size: 42,
       uploadedAt: '2026-10-01T12:00:00Z',
+      processingStatus: 'Completed',
+      requestedOutputFormat: 'Original',
     };
 
     expect(component.canConvertToPdf(uploadedPdf)).toBe(false);

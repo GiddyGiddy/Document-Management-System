@@ -22,7 +22,21 @@ public sealed class AppDbContext : DbContext
       entity.Property(x => x.FileContent).IsRequired();
       entity.Property(x => x.SizeBytes).IsRequired();
       entity.Property(x => x.UploadedAtUtc).IsRequired();
+      entity.Property(x => x.ProcessingStatus)
+        .HasConversion<string>()
+        .HasMaxLength(32)
+        .HasDefaultValue(DocumentProcessingStatus.Completed)
+        .IsRequired();
+      entity.Property(x => x.RequestedOutputFormat)
+        .HasConversion<string>()
+        .HasMaxLength(16)
+        .HasDefaultValue(DocumentOutputFormat.Original)
+        .IsRequired();
+      entity.Property(x => x.ProcessingStartedAtUtc);
+      entity.Property(x => x.ProcessingCompletedAtUtc);
+      entity.Property(x => x.FailureSummary).HasMaxLength(2000);
       entity.HasIndex(x => x.UploadedAtUtc);
+      entity.HasIndex(x => new { x.ProcessingStatus, x.UploadedAtUtc });
     });
   }
 }

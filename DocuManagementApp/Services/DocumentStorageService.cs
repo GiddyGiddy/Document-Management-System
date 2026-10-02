@@ -11,6 +11,11 @@ public sealed class DocumentListItem
   public string OriginalFileName { get; set; } = string.Empty;
   public long Size { get; set; }
   public DateTimeOffset UploadedAt { get; set; }
+  public string ProcessingStatus { get; set; } = string.Empty;
+  public string RequestedOutputFormat { get; set; } = string.Empty;
+  public DateTimeOffset? ProcessingStartedAt { get; set; }
+  public DateTimeOffset? ProcessingCompletedAt { get; set; }
+  public string? FailureSummary { get; set; }
 }
 
 public sealed class StoredDocumentResult
@@ -30,7 +35,12 @@ public sealed class DocumentDownloadResult
 
 public interface IDocumentStorageService
 {
-  Task<StoredDocumentResult> SaveDocumentAsync(string originalFileName, byte[] content, string? contentType, CancellationToken cancellationToken);
+  Task<StoredDocumentResult> SaveDocumentAsync(
+    string originalFileName,
+    byte[] content,
+    string? contentType,
+    CancellationToken cancellationToken,
+    DocumentOutputFormat requestedOutputFormat = DocumentOutputFormat.Original);
   Task<IReadOnlyList<DocumentListItem>> GetDocumentsAsync(CancellationToken cancellationToken);
   Task<DocumentDownloadResult?> GetDocumentByIdAsync(Guid id, CancellationToken cancellationToken);
 }
@@ -44,7 +54,12 @@ public sealed class DocumentStorageService : IDocumentStorageService
     _dbContext = dbContext;
   }
 
-  public async Task<StoredDocumentResult> SaveDocumentAsync(string originalFileName, byte[] content, string? contentType, CancellationToken cancellationToken)
+  public async Task<StoredDocumentResult> SaveDocumentAsync(
+    string originalFileName,
+    byte[] content,
+    string? contentType,
+    CancellationToken cancellationToken,
+    DocumentOutputFormat requestedOutputFormat = DocumentOutputFormat.Original)
   {
     var resolvedContentType = string.IsNullOrWhiteSpace(contentType)
       ? ResolveContentTypeForExtension(originalFileName)
@@ -56,7 +71,10 @@ public sealed class DocumentStorageService : IDocumentStorageService
       ContentType = resolvedContentType,
       FileContent = content,
       SizeBytes = content.Length,
-      UploadedAtUtc = DateTimeOffset.UtcNow
+      UploadedAtUtc = DateTimeOffset.UtcNow,
+      ProcessingStatus = DocumentProcessingStatus.Completed,
+      RequestedOutputFormat = requestedOutputFormat,
+      ProcessingCompletedAtUtc = DateTimeOffset.UtcNow
     };
 
     _dbContext.Documents.Add(document);
@@ -101,7 +119,12 @@ public sealed class DocumentStorageService : IDocumentStorageService
         StoredFileName = x.Id.ToString(),
         OriginalFileName = x.OriginalFileName,
         Size = x.SizeBytes,
-        UploadedAt = x.UploadedAtUtc
+        UploadedAt = x.UploadedAtUtc,
+        ProcessingStatus = x.ProcessingStatus.ToString(),
+        RequestedOutputFormat = x.RequestedOutputFormat.ToString(),
+        ProcessingStartedAt = x.ProcessingStartedAtUtc,
+        ProcessingCompletedAt = x.ProcessingCompletedAtUtc,
+        FailureSummary = x.FailureSummary
       })
       .ToListAsync(cancellationToken);
   }

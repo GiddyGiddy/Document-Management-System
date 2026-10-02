@@ -197,6 +197,36 @@
   gap: 0.5rem;
 }
 
+.processing-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  color: #53616d;
+  font-size: 0.74rem;
+}
+
+.processing-state span {
+  padding: 0.15rem 0.42rem;
+  border-radius: 5px;
+  background: #edf2ee;
+}
+
+.processing-state.state-failed span:first-child,
+.file-failure {
+  color: #a32121;
+}
+
+.processing-state.state-failed span:first-child {
+  background: #fbe9e7;
+}
+
+.file-failure {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .file-conversion-actions {
   display: flex;
   flex-wrap: wrap;
