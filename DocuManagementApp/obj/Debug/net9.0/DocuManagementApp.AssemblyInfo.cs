@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f68f168b509c2a92e77df2dc011fe596a40dc262")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dd1875d5bc2cbb60dd564ce60f52012d6e810310")]
 [assembly: System.Reflection.AssemblyProductAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

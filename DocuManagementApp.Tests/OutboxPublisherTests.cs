@@ -64,6 +64,7 @@ public sealed class OutboxPublisherTests
         return new OutboxMessage
         {
             Id = Guid.NewGuid(),
+            CorrelationId = Guid.NewGuid(),
             DocumentId = Guid.NewGuid(),
             EventType = "document.ingested",
             SchemaVersion = 1,

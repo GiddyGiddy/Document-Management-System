@@ -217,6 +217,14 @@
   color: #a32121;
 }
 
+.correlation-id {
+  margin-top: 0.25rem;
+  color: #7a838a;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+
 .processing-state.state-failed span:first-child {
   background: #fbe9e7;
 }

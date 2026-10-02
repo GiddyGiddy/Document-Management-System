@@ -77,6 +77,7 @@ public sealed class FileUploadControllerTests
         Assert.Equal(DocumentProcessingStatus.Completed.ToString(), listedDocument.ProcessingStatus);
         Assert.Equal(DocumentOutputFormat.Original.ToString(), listedDocument.RequestedOutputFormat);
         Assert.Equal("document.ingested", Assert.Single(_ingestion.OutboxMessages).EventType);
+        Assert.Equal(listedDocument.CorrelationId, Assert.Single(_ingestion.OutboxMessages).CorrelationId);
     }
 
     [Fact]
@@ -99,6 +100,9 @@ public sealed class FileUploadControllerTests
         var outbox = Assert.Single(_ingestion.OutboxMessages);
         Assert.Equal("document.ingested", outbox.EventType);
         Assert.Equal(1, outbox.SchemaVersion);
+        Assert.NotEqual(Guid.Empty, outbox.CorrelationId);
+        Assert.Contains($"\"correlation_id\":\"{outbox.CorrelationId:D}\"", outbox.Payload);
+        Assert.All(_storage.Documents, item => Assert.Equal(outbox.CorrelationId, item.CorrelationId));
         Assert.Contains("PdfA", outbox.Payload);
         Assert.Contains("report.pdfa.pdf", outbox.Payload);
         Assert.Equal(0, outbox.AttemptCount);
@@ -234,21 +238,31 @@ public sealed class FileUploadControllerTests
 
         public void AddDocument(Guid id, string fileName, byte[] content)
         {
-            AddStoredDocument(id, fileName, content, DocumentOutputFormat.Original);
+            var correlationId = Guid.NewGuid();
+            AddStoredDocument(id, fileName, content, DocumentOutputFormat.Original, correlationId: correlationId);
             _documents[id] = new DocumentDownloadResult
             {
                 Id = id,
+                CorrelationId = correlationId,
                 OriginalFileName = fileName,
                 ContentType = "application/octet-stream",
                 Content = content
             };
         }
 
-        public StoredDocumentResult AddStoredDocument(Guid id, string fileName, byte[] content, DocumentOutputFormat requestedOutputFormat, string? contentType = null)
+        public StoredDocumentResult AddStoredDocument(
+            Guid id,
+            string fileName,
+            byte[] content,
+            DocumentOutputFormat requestedOutputFormat,
+            string? contentType = null,
+            Guid? correlationId = null)
         {
+            var globalCorrelationId = correlationId ?? Guid.NewGuid();
             Documents.Add(new DocumentListItem
             {
                 StoredFileName = id.ToString(),
+                CorrelationId = globalCorrelationId,
                 OriginalFileName = fileName,
                 Size = content.Length,
                 UploadedAt = DateTimeOffset.UtcNow,
@@ -259,11 +273,12 @@ public sealed class FileUploadControllerTests
             _documents[id] = new DocumentDownloadResult
             {
                 Id = id,
+                CorrelationId = globalCorrelationId,
                 OriginalFileName = fileName,
                 ContentType = contentType ?? DocumentStorageService.ResolveContentTypeForExtension(fileName),
                 Content = content
             };
-            return new StoredDocumentResult { Id = id, OriginalFileName = fileName, Size = content.Length };
+            return new StoredDocumentResult { Id = id, CorrelationId = globalCorrelationId, OriginalFileName = fileName, Size = content.Length };
         }
 
         public void AddIngestedDocument(StoredDocumentResult result, byte[] content, string? contentType)
@@ -273,6 +288,7 @@ public sealed class FileUploadControllerTests
         }
 
         public bool ContainsDocument(Guid id) => _documents.ContainsKey(id);
+        public Guid GetCorrelationId(Guid id) => _documents[id].CorrelationId;
 
         public Task<IReadOnlyList<DocumentListItem>> GetDocumentsAsync(CancellationToken cancellationToken)
         {
@@ -302,6 +318,9 @@ public sealed class FileUploadControllerTests
                 throw new InvalidOperationException("Source document not found.");
             }
 
+            var correlationId = sourceDocumentId.HasValue
+                ? storage.GetCorrelationId(sourceDocumentId.Value)
+                : Guid.NewGuid();
             var results = documents.Select(document =>
             {
                 var saved = storage.AddStoredDocument(
@@ -309,7 +328,8 @@ public sealed class FileUploadControllerTests
                     document.OriginalFileName,
                     document.Content,
                     requestedOutputFormat,
-                    document.ContentType);
+                    document.ContentType,
+                    correlationId);
                 storage.AddIngestedDocument(saved, document.Content, document.ContentType);
                 return saved;
             }).ToArray();
@@ -319,6 +339,7 @@ public sealed class FileUploadControllerTests
             OutboxMessages.Add(new OutboxMessage
             {
                 Id = eventId,
+                CorrelationId = correlationId,
                 DocumentId = documentId,
                 EventType = "document.ingested",
                 SchemaVersion = 1,
@@ -327,7 +348,9 @@ public sealed class FileUploadControllerTests
                     eventId,
                     eventType = "document.ingested",
                     schemaVersion = 1,
+                    correlation_id = correlationId,
                     documentId,
+                    processingStatus = DocumentProcessingStatus.Completed.ToString(),
                     requestedOutputFormat = requestedOutputFormat.ToString(),
                     documents = results.Select(result => new { documentId = result.Id, result.OriginalFileName })
                 }),
@@ -336,6 +359,7 @@ public sealed class FileUploadControllerTests
 
             return Task.FromResult(new DocumentIngestionResult(
                 documentId,
+                correlationId,
                 results,
                 eventId,
                 DocumentProcessingStatus.Completed,

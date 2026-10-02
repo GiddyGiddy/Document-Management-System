@@ -80,6 +80,7 @@
                     <span>{{ file.processingStatus }}</span>
                     <span>{{ file.requestedOutputFormat }}</span>
                 </div>
+                <div class="correlation-id">Tracking ID: {{ file.correlationId }}</div>
                 <p class="file-failure" *ngIf="file.failureSummary">{{ file.failureSummary }}</p>
                 <div class="file-conversion-actions" *ngIf="canConvertToPdf(file) || canConvertToPdfA(file)">
                     <button

@@ -15,6 +15,7 @@ interface UploadFileRequest {
 
 export interface UploadedFileInfo {
   storedFileName: string;
+  correlationId: string;
   originalFileName: string;
   size: number;
   uploadedAt: string;
@@ -27,6 +28,7 @@ export interface UploadedFileInfo {
 
 export interface UploadReceipt {
   id: string;
+  correlationId?: string;
   originalFileName: string;
   storedFileName: string;
   size: number;

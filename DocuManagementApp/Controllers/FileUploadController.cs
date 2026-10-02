@@ -143,6 +143,7 @@ namespace DocuManagementApp.Controllers
         {
           message = "File uploaded successfully.",
           id = savedDocument.Id,
+          correlationId = ingestion.CorrelationId,
           originalFileName = savedDocument.OriginalFileName,
           storedFileName = savedDocument.Id.ToString(),
           size = savedDocument.Size,
@@ -267,6 +268,7 @@ namespace DocuManagementApp.Controllers
         {
           message = toPdfA ? "Document converted to PDF/A successfully." : "Document converted to PDF successfully.",
           id = savedDocument.Id,
+          correlationId = ingestion.CorrelationId,
           originalFileName = savedDocument.OriginalFileName,
           storedFileName = savedDocument.Id.ToString(),
           size = savedDocument.Size,

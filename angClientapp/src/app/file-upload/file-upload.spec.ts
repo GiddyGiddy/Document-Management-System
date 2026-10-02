@@ -127,6 +127,7 @@ describe('FileUpload', () => {
   it('converts an existing uploaded document and refreshes the list', () => {
     const uploadedDocument: UploadedFileInfo = {
       storedFileName: uploadReceipt.id,
+      correlationId: 'workflow-123',
       originalFileName: 'report.docx',
       size: 12,
       uploadedAt: '2026-10-01T12:00:00Z',
@@ -144,6 +145,7 @@ describe('FileUpload', () => {
   it('labels a stored PDF/A rendition in the uploaded list', () => {
     const archivedDocument: UploadedFileInfo = {
       storedFileName: 'pdfa-123',
+      correlationId: 'workflow-456',
       originalFileName: 'report.pdfa.pdf',
       size: 42,
       uploadedAt: '2026-10-01T12:00:00Z',
@@ -157,6 +159,7 @@ describe('FileUpload', () => {
   it('offers PDF/A conversion but not redundant PDF conversion for an uploaded PDF', () => {
     const uploadedPdf: UploadedFileInfo = {
       storedFileName: 'pdf-123',
+      correlationId: 'workflow-789',
       originalFileName: 'report.pdf',
       size: 42,
       uploadedAt: '2026-10-01T12:00:00Z',

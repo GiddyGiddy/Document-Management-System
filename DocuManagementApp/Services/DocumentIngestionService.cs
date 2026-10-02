@@ -13,6 +13,7 @@ public sealed record IngestionDocumentInput(
 
 public sealed record DocumentIngestionResult(
     Guid DocumentId,
+    Guid CorrelationId,
     IReadOnlyList<StoredDocumentResult> Documents,
     Guid EventId,
     DocumentProcessingStatus ProcessingStatus,
@@ -74,8 +75,11 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
             sourceDocument.FailureSummary = null;
         }
 
+        var correlationId = sourceDocument?.CorrelationId ?? Guid.NewGuid();
+
         var documentRecords = documents.Select(input => new DocumentRecord
         {
+            CorrelationId = correlationId,
             OriginalFileName = Path.GetFileName(input.OriginalFileName),
             ContentType = string.IsNullOrWhiteSpace(input.ContentType)
                 ? DocumentStorageService.ResolveContentTypeForExtension(input.OriginalFileName)
@@ -92,10 +96,12 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
         var eventId = Guid.NewGuid();
         var payload = JsonSerializer.Serialize(new
         {
+            correlation_id = correlationId,
             eventId,
             eventType = EventType,
             schemaVersion = EventSchemaVersion,
             documentId,
+            processingStatus = DocumentProcessingStatus.Completed.ToString(),
             requestedOutputFormat = requestedOutputFormat.ToString(),
             occurredAtUtc = now,
             documents = documentRecords.Select((record, index) => new
@@ -112,6 +118,7 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
         _dbContext.OutboxMessages.Add(new OutboxMessage
         {
             Id = eventId,
+            CorrelationId = correlationId,
             DocumentId = documentId,
             EventType = EventType,
             SchemaVersion = EventSchemaVersion,
@@ -126,12 +133,14 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
         var storedDocuments = documentRecords.Select(record => new StoredDocumentResult
         {
             Id = record.Id,
+            CorrelationId = record.CorrelationId,
             OriginalFileName = record.OriginalFileName,
             Size = record.SizeBytes
         }).ToArray();
 
         return new DocumentIngestionResult(
             documentId,
+            correlationId,
             storedDocuments,
             eventId,
             DocumentProcessingStatus.Completed,

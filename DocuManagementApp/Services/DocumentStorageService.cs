@@ -8,6 +8,7 @@ namespace DocuManagementApp.Services
 public sealed class DocumentListItem
 {
   public string StoredFileName { get; set; } = string.Empty;
+  public Guid CorrelationId { get; set; }
   public string OriginalFileName { get; set; } = string.Empty;
   public long Size { get; set; }
   public DateTimeOffset UploadedAt { get; set; }
@@ -21,6 +22,7 @@ public sealed class DocumentListItem
 public sealed class StoredDocumentResult
 {
   public Guid Id { get; set; }
+  public Guid CorrelationId { get; set; }
   public string OriginalFileName { get; set; } = string.Empty;
   public long Size { get; set; }
 }
@@ -28,6 +30,7 @@ public sealed class StoredDocumentResult
 public sealed class DocumentDownloadResult
 {
   public Guid Id { get; set; }
+  public Guid CorrelationId { get; set; }
   public string OriginalFileName { get; set; } = string.Empty;
   public string ContentType { get; set; } = "application/octet-stream";
   public byte[] Content { get; set; } = Array.Empty<byte>();
@@ -77,6 +80,7 @@ public sealed class DocumentStorageService : IDocumentStorageService
       .Select(x => new DocumentListItem
       {
         StoredFileName = x.Id.ToString(),
+        CorrelationId = x.CorrelationId,
         OriginalFileName = x.OriginalFileName,
         Size = x.SizeBytes,
         UploadedAt = x.UploadedAtUtc,
@@ -97,6 +101,7 @@ public sealed class DocumentStorageService : IDocumentStorageService
       .Select(x => new DocumentDownloadResult
       {
         Id = x.Id,
+        CorrelationId = x.CorrelationId,
         OriginalFileName = x.OriginalFileName,
         ContentType = x.ContentType,
         Content = x.FileContent

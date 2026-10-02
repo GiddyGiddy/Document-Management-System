@@ -64,6 +64,7 @@ public sealed class RabbitMqOutboxEventPublisher : IOutboxEventPublisher
 
         var properties = channel.CreateBasicProperties();
         properties.MessageId = message.Id.ToString("D");
+        properties.CorrelationId = message.CorrelationId.ToString("D");
         properties.Type = message.EventType;
         properties.ContentType = "application/json";
         properties.ContentEncoding = "utf-8";
@@ -72,7 +73,10 @@ public sealed class RabbitMqOutboxEventPublisher : IOutboxEventPublisher
         properties.Headers = new Dictionary<string, object>
         {
             ["schemaVersion"] = message.SchemaVersion,
-            ["documentId"] = message.DocumentId.ToString("D")
+            ["documentId"] = message.DocumentId.ToString("D"),
+            ["correlation_id"] = message.CorrelationId.ToString("D"),
+            ["processingStatus"] = GetStringProperty(message.Payload, "processingStatus", "Completed"),
+            ["requestedOutputFormat"] = GetStringProperty(message.Payload, "requestedOutputFormat", "Original")
         };
 
         var body = Encoding.UTF8.GetBytes(message.Payload);
@@ -80,6 +84,14 @@ public sealed class RabbitMqOutboxEventPublisher : IOutboxEventPublisher
         channel.WaitForConfirmsOrDie(TimeSpan.FromSeconds(_options.ConfirmTimeoutSeconds));
         _logger.LogInformation("RabbitMQ confirmed outbox event {EventId} ({EventType}).", message.Id, message.EventType);
         return Task.CompletedTask;
+    }
+
+    private static string GetStringProperty(string payload, string propertyName, string fallback)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(payload);
+        return document.RootElement.TryGetProperty(propertyName, out var value)
+            ? value.GetString() ?? fallback
+            : fallback;
     }
 }
 
