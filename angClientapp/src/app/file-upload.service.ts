@@ -54,7 +54,11 @@ export class FileUploadService {
   }
 
   archiveAsPdfA(documentId: string): Observable<boolean> {
-    const endpoint = `${environment.apiURL}/fileupload/${encodeURIComponent(documentId)}/convert-to-pdf?toPdfA=true`;
+    return this.convertDocument(documentId, true);
+  }
+
+  convertDocument(documentId: string, toPdfA: boolean): Observable<boolean> {
+    const endpoint = `${environment.apiURL}/fileupload/${encodeURIComponent(documentId)}/convert-to-pdf?toPdfA=${toPdfA}`;
     return this.httpClient.post(endpoint, {}).pipe(
       map(() => true),
       catchError((error) => {

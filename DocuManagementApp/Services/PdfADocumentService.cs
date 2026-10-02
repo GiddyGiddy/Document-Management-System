@@ -18,7 +18,7 @@ namespace DocuManagementApp.Services
     {
         public enum PdfAComplianceLevel
         {
-            PdfA1B = 1
+            PdfA2B = 1
         }
 
         private string? _xmlPfad;
@@ -28,7 +28,7 @@ namespace DocuManagementApp.Services
         private string? _quellePfad;
         private string? _errorMsg;
         private bool _useEncodingDefault;
-        private PdfAComplianceLevel _pdfaComplianceLevel = PdfAComplianceLevel.PdfA1B;
+        private PdfAComplianceLevel _pdfaComplianceLevel = PdfAComplianceLevel.PdfA2B;
         private bool _disablePdfEncryptionForCompliance = true;
         private bool _enforcePdfaConformanceOutput = true;
         private string? _pdfAuthor;
@@ -36,6 +36,12 @@ namespace DocuManagementApp.Services
         private string? _pdfSubject;
         private string? _pdfKeywords;
         private string? _lastValidationReport;
+        private readonly IPdfAProcessingService _pdfaProcessingService;
+
+        public PdfADocumentService(IPdfAProcessingService pdfaProcessingService)
+        {
+            _pdfaProcessingService = pdfaProcessingService;
+        }
 
         public string? XMLPfad
         {
@@ -113,7 +119,7 @@ namespace DocuManagementApp.Services
         {
             if (!Enum.IsDefined(typeof(PdfAComplianceLevel), complianceLevel))
             {
-                _errorMsg = "Unsupported PDF/A compliance level. Only PDF/A-1b is supported by the current converter.";
+                _errorMsg = "Unsupported PDF/A compliance level. Only PDF/A-2b is supported by the configured converter.";
                 return 1;
             }
 
@@ -123,6 +129,11 @@ namespace DocuManagementApp.Services
         }
 
         public int DokumentAlsPdfaGenerieren()
+        {
+            return DokumentAlsPdfaGenerierenAsync(CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        public async Task<int> DokumentAlsPdfaGenerierenAsync(CancellationToken cancellationToken)
         {
             const int Ok = 0;
             const int XmlPfadLeer = 1;
@@ -137,7 +148,7 @@ namespace DocuManagementApp.Services
 
             if (!IsPdfaComplianceSupported())
             {
-                _errorMsg = "Unsupported PDF/A compliance level. Only PDF/A-1b is supported by the current converter.";
+                _errorMsg = "Unsupported PDF/A compliance level. Only PDF/A-2b is supported by the configured converter.";
                 return UnsupportedPdfaCompliance;
             }
 
@@ -220,26 +231,24 @@ namespace DocuManagementApp.Services
                 driver.BaseDirectory = new DirectoryInfo(_bildPfad);
                 driver.Render(tempFoFile, tempPdfFile);
 
-                PdfAValidationReport report = BuildPdfaValidationReport(tempPdfFile);
-                _lastValidationReport = report.ToText();
+                var result = await _pdfaProcessingService.ConvertToPdfAAsync(
+                    tempPdfFile,
+                    _pdfaZielPfad,
+                    cancellationToken);
+                _lastValidationReport = result.Report;
 
-                if (!report.IsConformant)
+                if (!result.IsCompliant)
                 {
-                    if (_enforcePdfaConformanceOutput)
-                    {
-                        _errorMsg = report.Summary;
-                        return PdfaConformanceFailed;
-                    }
-
-                    _errorMsg = "PDF/A validation warning: " + report.Summary;
-                }
-                else
-                {
-                    _errorMsg = null;
+                    _errorMsg = result.Report;
+                    return PdfaConformanceFailed;
                 }
 
-                File.Copy(tempPdfFile, _pdfaZielPfad, true);
+                _errorMsg = null;
                 return Ok;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -259,76 +268,66 @@ namespace DocuManagementApp.Services
 
         public int PdfNachPdfaKonvertieren()
         {
-            const int Ok = 0;
-            const int QuelleLeerOderNichtGefunden = 1;
-            const int ZielPfadUngueltig = 2;
-            const int KonvertierungFehlgeschlagen = 3;
-            const int UnsupportedPdfaCompliance = 4;
-            const int PdfaConformanceFailed = 5;
-
             if (!IsPdfaComplianceSupported())
             {
-                _errorMsg = "Unsupported PDF/A compliance level. Only PDF/A-1b is supported by the current converter.";
-                return UnsupportedPdfaCompliance;
+                _errorMsg = "Unsupported PDF/A compliance level. Only PDF/A-2b is supported by the configured converter.";
+                return 4;
             }
 
             if (string.IsNullOrWhiteSpace(_quellePfad) || !File.Exists(_quellePfad))
             {
-                _errorMsg = _quellePfad;
-                return QuelleLeerOderNichtGefunden;
+                _errorMsg = "Source PDF path is missing or does not exist.";
+                return 1;
             }
 
             if (string.IsNullOrWhiteSpace(_pdfaZielPfad))
             {
-                _errorMsg = _pdfaZielPfad;
-                return ZielPfadUngueltig;
-            }
-
-            string? targetDirectory = Path.GetDirectoryName(_pdfaZielPfad);
-            if (string.IsNullOrWhiteSpace(targetDirectory) || !Directory.Exists(targetDirectory))
-            {
-                _errorMsg = _pdfaZielPfad;
-                return ZielPfadUngueltig;
+                _errorMsg = "Output PDF path is required.";
+                return 2;
             }
 
             try
             {
-                PdfAValidationReport report = BuildPdfaValidationReport(_quellePfad);
-                _lastValidationReport = report.ToText();
-
-                if (!report.IsConformant)
-                {
-                    if (_enforcePdfaConformanceOutput)
-                    {
-                        _errorMsg = report.Summary;
-                        return PdfaConformanceFailed;
-                    }
-
-                    _errorMsg = "PDF/A validation warning: " + report.Summary;
-                }
-                else
-                {
-                    _errorMsg = null;
-                }
-
-                File.Copy(_quellePfad, _pdfaZielPfad, true);
-                return Ok;
+                var result = ConvertPdfToPdfaAsync(_quellePfad, _pdfaZielPfad, CancellationToken.None)
+                    .GetAwaiter().GetResult();
+                return result.IsCompliant ? 0 : 5;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                _errorMsg = ex.Message;
-                if (ex.InnerException != null)
-                {
-                    _errorMsg += ex.InnerException;
-                }
-                return KonvertierungFehlgeschlagen;
+                _errorMsg = exception.Message;
+                return 3;
             }
+        }
+
+        public async Task<PdfAValidationResult> ConvertPdfToPdfaAsync(
+            string sourcePdfPath,
+            string outputPdfPath,
+            CancellationToken cancellationToken)
+        {
+            var result = await _pdfaProcessingService.ConvertToPdfAAsync(sourcePdfPath, outputPdfPath, cancellationToken);
+            _lastValidationReport = result.Report;
+            _errorMsg = result.IsCompliant ? null : result.Report;
+            return result;
+        }
+
+        public async Task<PdfAValidationResult> ValidatePdfaAsync(string pdfPath, CancellationToken cancellationToken)
+        {
+            var result = await _pdfaProcessingService.ValidateAsync(pdfPath, cancellationToken);
+            _lastValidationReport = result.Report;
+            _errorMsg = result.IsCompliant ? null : result.Report;
+            return result;
         }
 
         public int DokumentAlsPdfaGenerierenMitDefaultEncoding()
         {
             _useEncodingDefault = true;
             return DokumentAlsPdfaGenerieren();
+        }
+
+        public async Task<int> DokumentAlsPdfaGenerierenMitDefaultEncodingAsync(CancellationToken cancellationToken)
+        {
+            _useEncodingDefault = true;
+            return await DokumentAlsPdfaGenerierenAsync(cancellationToken);
         }
 
         public string GetErrorMessage()
@@ -348,10 +347,8 @@ namespace DocuManagementApp.Services
                 return "PDF path is missing or invalid.";
             }
 
-            PdfAValidationReport report = BuildPdfaValidationReport(pdfPath);
-            return report.Suggestions.Count == 0
-                ? "No remediation suggestions. The document passed internal PDF/A checks."
-                : string.Join(Environment.NewLine, report.Suggestions.ToArray());
+            var result = ValidatePdfaAsync(pdfPath, CancellationToken.None).GetAwaiter().GetResult();
+            return result.Report;
         }
 
         public int ValidatePdfaConformance(string pdfPath)
@@ -369,17 +366,8 @@ namespace DocuManagementApp.Services
 
             try
             {
-                PdfAValidationReport report = BuildPdfaValidationReport(pdfPath);
-                _lastValidationReport = report.ToText();
-
-                if (!report.IsConformant)
-                {
-                    _errorMsg = report.Summary;
-                    return NichtKonform;
-                }
-
-                _errorMsg = null;
-                return Ok;
+                var result = ValidatePdfaAsync(pdfPath, CancellationToken.None).GetAwaiter().GetResult();
+                return result.IsCompliant ? Ok : NichtKonform;
             }
             catch (Exception ex)
             {
@@ -416,167 +404,7 @@ namespace DocuManagementApp.Services
 
         private bool IsPdfaComplianceSupported()
         {
-            return _pdfaComplianceLevel == PdfAComplianceLevel.PdfA1B;
-        }
-
-        private PdfAValidationReport BuildPdfaValidationReport(string pdfPath)
-        {
-            byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
-            string lowerContent = content.ToLowerInvariant();
-
-            PdfAValidationReport report = new PdfAValidationReport();
-
-            if (!content.StartsWith("%PDF-", StringComparison.Ordinal))
-            {
-                report.AddIssue(
-                    "Missing PDF header.",
-                    "Regenerate the file with a compliant PDF writer and ensure the file starts with '%PDF-'.");
-            }
-
-            // PDF/A-1 is based on PDF 1.4. Higher versions are suspicious for strict A-1 workflows.
-            string header = content.Length >= 8 ? content.Substring(0, 8) : content;
-            if (header.StartsWith("%PDF-", StringComparison.Ordinal) && header.Length >= 8)
-            {
-                string version = header.Substring(5, 3);
-                if (string.CompareOrdinal(version, "1.4") > 0)
-                {
-                    report.AddIssue(
-                        "PDF version appears higher than 1.4 for a PDF/A-1b target.",
-                        "Export using PDF/A-1b settings or force PDF version 1.4 during creation.");
-                }
-            }
-
-            if (lowerContent.Contains("/encrypt"))
-            {
-                report.AddIssue(
-                    "Encrypted PDF is not PDF/A compliant.",
-                    "Disable user/owner passwords and all encryption before archiving as PDF/A.");
-            }
-
-            if (!lowerContent.Contains("pdfaid:part") || !lowerContent.Contains("pdfaid:conformance"))
-            {
-                report.AddIssue(
-                    "Missing PDF/A XMP identification metadata.",
-                    "Embed XMP with pdfaid:part and pdfaid:conformance (for example, part='1' conformance='B').");
-            }
-
-            if (!lowerContent.Contains("/metadata"))
-            {
-                report.AddIssue(
-                    "Missing Metadata entry in document catalog.",
-                    "Include an XMP metadata stream and reference it from the catalog with /Metadata.");
-            }
-
-            if (!lowerContent.Contains("/outputintent") && !lowerContent.Contains("/outputintents"))
-            {
-                report.AddIssue(
-                    "Missing OutputIntent entry.",
-                    "Embed an output intent with an ICC profile (typically sRGB IEC61966-2.1)." );
-            }
-
-            if (!lowerContent.Contains("/iccprofile"))
-            {
-                report.AddIssue(
-                    "Missing ICC profile.",
-                    "Embed an ICC profile and wire it through /OutputIntent (/DestOutputProfile)." );
-            }
-
-            bool hasEmbeddedFontMarker =
-                lowerContent.Contains("/fontfile") ||
-                lowerContent.Contains("/fontfile2") ||
-                lowerContent.Contains("/fontfile3");
-            if (!hasEmbeddedFontMarker)
-            {
-                report.AddIssue(
-                    "No embedded font markers detected.",
-                    "Embed all fonts (or approved subsets) during PDF generation.");
-            }
-
-            if (lowerContent.Contains("/javascript") || lowerContent.Contains("/js"))
-            {
-                report.AddIssue(
-                    "JavaScript actions detected.",
-                    "Remove all JavaScript from the PDF. PDF/A disallows active scripting.");
-            }
-
-            if (lowerContent.Contains("/launch") || lowerContent.Contains("/richmedia") || lowerContent.Contains("/movie"))
-            {
-                report.AddIssue(
-                    "Interactive or multimedia actions detected.",
-                    "Remove launch, rich-media, movie, and similar interactive features.");
-            }
-
-            if (lowerContent.Contains("/embeddedfile") || lowerContent.Contains("/filespec"))
-            {
-                report.AddIssue(
-                    "Embedded files or file specifications detected.",
-                    "Remove attachments for PDF/A-1b output or target a PDF/A part that allows them.");
-            }
-
-            if (lowerContent.Contains("/devicergb") && !lowerContent.Contains("/outputintent"))
-            {
-                report.AddIssue(
-                    "DeviceRGB used without output intent.",
-                    "Map colors through an ICC-based profile and include /OutputIntent.");
-            }
-
-            report.FinalizeSummary();
-            return report;
-        }
-
-        private sealed class PdfAValidationReport
-        {
-            public readonly List<string> Issues = new List<string>();
-            public readonly List<string> Suggestions = new List<string>();
-            public bool IsConformant { get; private set; }
-            public string? Summary { get; private set; }
-
-            public void AddIssue(string issue, string suggestion)
-            {
-                Issues.Add(issue);
-                Suggestions.Add("- " + suggestion);
-            }
-
-            public void FinalizeSummary()
-            {
-                if (Issues.Count == 0)
-                {
-                    IsConformant = true;
-                    Summary = "PDF passed internal PDF/A checks.";
-                    return;
-                }
-
-                IsConformant = false;
-                Summary = "PDF/A checks failed: " + string.Join(" ", Issues.ToArray());
-            }
-
-            public string ToText()
-            {
-                StringBuilder sb = new StringBuilder();
-                sb.AppendLine(IsConformant ? "Conformance: PASS" : "Conformance: FAIL");
-                sb.AppendLine("Summary: " + Summary);
-
-                if (Issues.Count > 0)
-                {
-                    sb.AppendLine("Issues:");
-                    for (int i = 0; i < Issues.Count; i++)
-                    {
-                        sb.AppendLine("- " + Issues[i]);
-                    }
-                }
-
-                if (Suggestions.Count > 0)
-                {
-                    sb.AppendLine("Suggestions:");
-                    for (int i = 0; i < Suggestions.Count; i++)
-                    {
-                        sb.AppendLine(Suggestions[i]);
-                    }
-                }
-
-                return sb.ToString().TrimEnd();
-            }
+            return _pdfaComplianceLevel == PdfAComplianceLevel.PdfA2B;
         }
 
         private Fonet.Render.Pdf.PdfRendererOptions CreatePdfRendererOptions()

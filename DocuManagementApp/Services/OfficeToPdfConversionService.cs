@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 
 namespace DocuManagementApp.Services
 {
@@ -15,7 +16,7 @@ namespace DocuManagementApp.Services
     Task<OfficeConversionResult> ConvertToPdfAsync(string sourceFilePath, string outputDirectory, CancellationToken cancellationToken);
   }
 
-  // Converts Word/Excel documents to PDF by shelling out to a headless LibreOffice install.
+  // Converts Word/Excel documents to PDF using a local LibreOffice install or its container image.
   public sealed class OfficeToPdfConversionService : IOfficeToPdfConversionService
   {
     private static readonly string[] SupportedExtensions =
@@ -23,13 +24,25 @@ namespace DocuManagementApp.Services
 
     private static readonly TimeSpan ConversionTimeout = TimeSpan.FromMinutes(2);
 
-    private readonly string _sofficePath;
+    private readonly string? _sofficePath;
+    private readonly string _containerRuntimePath;
+    private readonly string _containerImage;
+    private readonly IPdfAProcessRunner _processRunner;
     private readonly ILogger<OfficeToPdfConversionService> _logger;
 
-    public OfficeToPdfConversionService(IConfiguration configuration, ILogger<OfficeToPdfConversionService> logger)
+    public OfficeToPdfConversionService(
+      IConfiguration configuration,
+      IPdfAProcessRunner processRunner,
+      ILogger<OfficeToPdfConversionService> logger)
     {
       _logger = logger;
+      _processRunner = processRunner;
       _sofficePath = ResolveSofficePath(configuration);
+      var configuredRuntimePath = configuration["LibreOffice:ContainerRuntimeExecutablePath"];
+      _containerRuntimePath = string.IsNullOrWhiteSpace(configuredRuntimePath)
+        ? (OperatingSystem.IsWindows() ? "podman.exe" : "podman")
+        : configuredRuntimePath;
+      _containerImage = configuration["LibreOffice:ContainerImage"] ?? "docker.io/linuxserver/libreoffice:latest";
     }
 
     public bool IsSupportedExtension(string fileName)
@@ -46,9 +59,68 @@ namespace DocuManagementApp.Services
 
       Directory.CreateDirectory(outputDirectory);
 
+      var outputPdfPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(sourceFilePath) + ".pdf");
+      try
+      {
+        PdfAProcessResult processResult;
+        if (_sofficePath is not null)
+        {
+          processResult = await RunLocalLibreOfficeAsync(sourceFilePath, outputDirectory, cancellationToken);
+        }
+        else
+        {
+          processResult = await RunContainerLibreOfficeAsync(sourceFilePath, outputDirectory, cancellationToken);
+        }
+
+        if (processResult.ExitCode != 0)
+        {
+          var details = string.Join(Environment.NewLine, new[] { processResult.StandardError, processResult.StandardOutput }
+            .Where(output => !string.IsNullOrWhiteSpace(output)));
+          _logger.LogError("LibreOffice conversion of '{SourceFile}' failed with exit code {ExitCode}. Output: {Output}",
+            sourceFilePath, processResult.ExitCode, details);
+          return new OfficeConversionResult
+          {
+            Success = false,
+            ErrorMessage = $"LibreOffice exited with code {processResult.ExitCode}: {details}".Trim()
+          };
+        }
+
+        if (!File.Exists(outputPdfPath))
+        {
+          var diagnostics = string.Join(Environment.NewLine, new[] { processResult.StandardError, processResult.StandardOutput }
+            .Where(output => !string.IsNullOrWhiteSpace(output)));
+          return new OfficeConversionResult
+          {
+            Success = false,
+            ErrorMessage = $"Conversion completed but the output PDF was not found at '{outputPdfPath}'. {diagnostics}".Trim()
+          };
+        }
+
+        return new OfficeConversionResult { Success = true, OutputPdfPath = outputPdfPath };
+      }
+      catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+      {
+        return new OfficeConversionResult { Success = false, ErrorMessage = $"LibreOffice conversion timed out after {ConversionTimeout.TotalSeconds:0} seconds." };
+      }
+      catch (OperationCanceledException)
+      {
+        throw;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Unexpected error while converting '{SourceFile}' to PDF.", sourceFilePath);
+        return new OfficeConversionResult { Success = false, ErrorMessage = ex.Message };
+      }
+    }
+
+    private async Task<PdfAProcessResult> RunLocalLibreOfficeAsync(
+      string sourceFilePath,
+      string outputDirectory,
+      CancellationToken cancellationToken)
+    {
       var startInfo = new ProcessStartInfo
       {
-        FileName = _sofficePath,
+        FileName = _sofficePath!,
         UseShellExecute = false,
         CreateNoWindow = true,
         RedirectStandardOutput = true,
@@ -64,48 +136,62 @@ namespace DocuManagementApp.Services
 
       using var timeoutCts = new CancellationTokenSource(ConversionTimeout);
       using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+      using var process = Process.Start(startInfo)
+        ?? throw new InvalidOperationException($"Failed to start LibreOffice at '{_sofficePath}'.");
+      var stdoutTask = process.StandardOutput.ReadToEndAsync(linkedCts.Token);
+      var stderrTask = process.StandardError.ReadToEndAsync(linkedCts.Token);
 
       try
       {
-        using var process = Process.Start(startInfo);
-        if (process is null)
-        {
-          return new OfficeConversionResult { Success = false, ErrorMessage = $"Failed to start LibreOffice at '{_sofficePath}'." };
-        }
-
-        var stdOutTask = process.StandardOutput.ReadToEndAsync(linkedCts.Token);
-        var stdErrTask = process.StandardError.ReadToEndAsync(linkedCts.Token);
         await process.WaitForExitAsync(linkedCts.Token);
-        var stdOut = await stdOutTask;
-        var stdErr = await stdErrTask;
-
-        if (process.ExitCode != 0)
+        return new PdfAProcessResult(process.ExitCode, await stdoutTask, await stderrTask);
+      }
+      catch (OperationCanceledException)
+      {
+        try
         {
-          _logger.LogError("LibreOffice conversion of '{SourceFile}' failed with exit code {ExitCode}. Stdout: {StdOut} Stderr: {StdErr}",
-            sourceFilePath, process.ExitCode, stdOut, stdErr);
-          return new OfficeConversionResult { Success = false, ErrorMessage = $"LibreOffice exited with code {process.ExitCode}: {stdErr}" };
+          process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
         }
 
-        var outputPdfPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(sourceFilePath) + ".pdf");
-        if (!File.Exists(outputPdfPath))
-        {
-          return new OfficeConversionResult { Success = false, ErrorMessage = "Conversion completed but the output PDF was not found." };
-        }
-
-        return new OfficeConversionResult { Success = true, OutputPdfPath = outputPdfPath };
-      }
-      catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-      {
-        return new OfficeConversionResult { Success = false, ErrorMessage = $"LibreOffice conversion timed out after {ConversionTimeout.TotalSeconds:0} seconds." };
-      }
-      catch (Exception ex)
-      {
-        _logger.LogError(ex, "Unexpected error while converting '{SourceFile}' to PDF.", sourceFilePath);
-        return new OfficeConversionResult { Success = false, ErrorMessage = ex.Message };
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new TimeoutException($"LibreOffice conversion timed out after {ConversionTimeout.TotalSeconds:0} seconds.");
       }
     }
 
-    private static string ResolveSofficePath(IConfiguration configuration)
+    private Task<PdfAProcessResult> RunContainerLibreOfficeAsync(
+      string sourceFilePath,
+      string outputDirectory,
+      CancellationToken cancellationToken)
+    {
+      var inputFileName = Path.GetFileName(sourceFilePath);
+      var containerSourcePath = $"/work/input/{inputFileName}";
+      var arguments = new[]
+      {
+        "run",
+        "--rm",
+        "--entrypoint",
+        "/usr/bin/soffice",
+        "--volume",
+        $"{Path.GetFullPath(sourceFilePath)}:{containerSourcePath}:ro",
+        "--volume",
+        $"{Path.GetFullPath(outputDirectory)}:/work/output:rw",
+        _containerImage,
+        "--headless",
+        "--norestore",
+        "--convert-to",
+        "pdf",
+        "--outdir",
+        "/work/output",
+        containerSourcePath
+      };
+
+      return _processRunner.RunAsync(_containerRuntimePath, arguments, ConversionTimeout, cancellationToken);
+    }
+
+    private static string? ResolveSofficePath(IConfiguration configuration)
     {
       var configured = configuration["LibreOffice:ExecutablePath"];
       if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
@@ -122,7 +208,7 @@ namespace DocuManagementApp.Services
         "/opt/libreoffice/program/soffice"
       ];
 
-      return candidates.FirstOrDefault(File.Exists) ?? "soffice";
+      return candidates.FirstOrDefault(File.Exists);
     }
   }
 }

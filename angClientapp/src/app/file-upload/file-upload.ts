@@ -21,12 +21,16 @@ export class FileUpload implements OnInit {
   uploadedFiles: UploadedFileInfo[] = [];
   archiveAsPdfA = false;
   readonly maxFileSizeBytes = 5 * 1024 * 1024;
-  private readonly pdfaSupportedExtensions = ['doc', 'docx', 'rtf', 'odt', 'xls', 'xlsx', 'ods'];
+  private readonly officeConversionExtensions = ['doc', 'docx', 'rtf', 'odt', 'xls', 'xlsx', 'ods'];
+  private readonly pdfaSupportedExtensions = [...this.officeConversionExtensions, 'pdf'];
   isUploading = false;
   isLoadingFiles = false;
   errorMessage = '';
   successMessage = '';
   warningMessage = '';
+  conversionInProgressId: string | null = null;
+  conversionMessage = '';
+  conversionErrorMessage = '';
 
   constructor(
     private fileUploadService: FileUploadService,
@@ -44,6 +48,57 @@ export class FileUpload implements OnInit {
   get canArchiveAsPdfA(): boolean {
     const extension = this.fileToUpload?.name.toLowerCase().split('.').pop() ?? '';
     return this.pdfaSupportedExtensions.includes(extension);
+  }
+
+  canConvertToPdf(file: UploadedFileInfo): boolean {
+    const extension = file.originalFileName.toLowerCase().split('.').pop() ?? '';
+    return this.officeConversionExtensions.includes(extension);
+  }
+
+  canConvertToPdfA(file: UploadedFileInfo): boolean {
+    const extension = file.originalFileName.toLowerCase().split('.').pop() ?? '';
+    return this.pdfaSupportedExtensions.includes(extension);
+  }
+
+  getDocumentFormat(file: UploadedFileInfo): string {
+    const fileName = file.originalFileName.toLowerCase();
+    if (fileName.endsWith('.pdfa.pdf')) {
+      return 'PDF/A';
+    }
+    if (fileName.endsWith('.pdf')) {
+      return 'PDF';
+    }
+    return fileName.split('.').pop()?.toUpperCase() ?? 'FILE';
+  }
+
+  convertUploadedDocument(file: UploadedFileInfo, toPdfA: boolean): void {
+    if (this.conversionInProgressId || !(toPdfA ? this.canConvertToPdfA(file) : this.canConvertToPdf(file))) {
+      return;
+    }
+
+    this.conversionInProgressId = file.storedFileName;
+    this.conversionMessage = '';
+    this.conversionErrorMessage = '';
+    this.fileUploadService.convertDocument(file.storedFileName, toPdfA).subscribe({
+      next: (converted) => {
+        this.conversionInProgressId = null;
+        if (converted) {
+          this.conversionMessage = toPdfA
+            ? `${file.originalFileName} archived as PDF/A.`
+            : `${file.originalFileName} converted to PDF.`;
+          this.loadUploadedFiles();
+        } else {
+          this.conversionErrorMessage = 'Conversion failed. The original document remains available.';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (error: FileUploadError) => {
+        this.conversionInProgressId = null;
+        this.conversionErrorMessage = 'Conversion failed. The original document remains available.';
+        console.error('Document conversion error:', error);
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   onFileSelected(event: Event): void {

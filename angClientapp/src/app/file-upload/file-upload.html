@@ -24,7 +24,7 @@
             </span>
         </label>
         <p class="archive-note" *ngIf="fileToUpload && !canArchiveAsPdfA">
-            PDF/A-Archivierung ist für Word-, Excel- und OpenDocument-Dateien verfügbar.
+            PDF/A-Archivierung ist für PDF-, Word-, Excel- und OpenDocument-Dateien verfügbar.
         </p>
 
         <div class="actions">
@@ -48,6 +48,8 @@
                 {{ isLoadingFiles ? 'Loading...' : 'Refresh' }}
             </button>
         </div>
+        <p class="status success" *ngIf="conversionMessage">{{ conversionMessage }}</p>
+        <p class="status error" *ngIf="conversionErrorMessage">{{ conversionErrorMessage }}</p>
 
         <p class="file-meta" *ngIf="!isLoadingFiles && uploadedFiles.length === 0">
             No files uploaded yet.
@@ -56,6 +58,9 @@
         <ul *ngIf="uploadedFiles.length > 0" class="uploaded-files-list">
             <li *ngFor="let file of uploadedFiles">
                 <div class="file-name">
+                    <span class="file-format" [class.pdfa-format]="getDocumentFormat(file) === 'PDF/A'">
+                        {{ getDocumentFormat(file) }}
+                    </span>
                     <a
                         *ngIf="getFileKind(file) !== 'other'; else plainFileName"
                         [href]="getFileUrl(file)"
@@ -70,6 +75,24 @@
                 <div class="file-details">
                     <span>{{ formatSize(file.size) }}</span>
                     <span>{{ file.uploadedAt | date:'medium' }}</span>
+                </div>
+                <div class="file-conversion-actions" *ngIf="canConvertToPdf(file) || canConvertToPdfA(file)">
+                    <button
+                        *ngIf="canConvertToPdf(file)"
+                        type="button"
+                        (click)="convertUploadedDocument(file, false)"
+                        [disabled]="conversionInProgressId !== null"
+                    >
+                        {{ conversionInProgressId === file.storedFileName ? 'Converting...' : 'Create PDF' }}
+                    </button>
+                    <button
+                        *ngIf="canConvertToPdfA(file)"
+                        type="button"
+                        (click)="convertUploadedDocument(file, true)"
+                        [disabled]="conversionInProgressId !== null"
+                    >
+                        Create PDF/A
+                    </button>
                 </div>
             </li>
         </ul>

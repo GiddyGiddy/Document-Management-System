@@ -72,4 +72,19 @@ describe('FileUploadService', () => {
 
     await expect(responsePromise).resolves.toBe(true);
   });
+
+  it('posts to the PDF conversion endpoint when PDF/A is not requested', async () => {
+    const responsePromise = firstValueFrom(service.convertDocument('document-456', false));
+    let request!: ReturnType<HttpTestingController['expectOne']>;
+    await vi.waitFor(() => {
+      request = httpTestingController.expectOne(
+        `${environment.apiURL}/fileupload/document-456/convert-to-pdf?toPdfA=false`
+      );
+    });
+
+    expect(request.request.method).toBe('POST');
+    request.flush({ message: 'Document converted to PDF successfully.' });
+
+    await expect(responsePromise).resolves.toBe(true);
+  });
 });

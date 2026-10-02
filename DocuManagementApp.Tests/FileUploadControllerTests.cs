@@ -9,6 +9,7 @@ public sealed class FileUploadControllerTests
 {
     private readonly FakeDocumentStorageService _storage = new();
     private readonly FakeOfficeToPdfConversionService _conversion = new();
+    private readonly FakePdfAProcessingService _pdfa = new();
     private readonly FileUploadController _controller;
 
     public FileUploadControllerTests()
@@ -17,7 +18,7 @@ public sealed class FileUploadControllerTests
             NullLogger<FileUploadController>.Instance,
             _storage,
             _conversion,
-            new PdfADocumentService());
+            _pdfa);
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public sealed class FileUploadControllerTests
     }
 
     [Fact]
-    public async Task ConvertToPdfRejectsUnsupportedDocumentType()
+    public async Task ConvertToPdfRejectsPdfWhenPdfAWasNotRequested()
     {
         var documentId = Guid.NewGuid();
         _storage.AddDocument(documentId, "report.pdf", [1, 2, 3]);
@@ -90,6 +91,28 @@ public sealed class FileUploadControllerTests
         Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal(0, _conversion.ConvertCallCount);
         Assert.Empty(_storage.SavedDocuments);
+    }
+
+    [Fact]
+    public async Task ConvertToPdfAConvertsUploadedPdfDirectlyAndStoresPdfaCopy()
+    {
+        var documentId = Guid.NewGuid();
+        _storage.AddDocument(documentId, "report.pdf", [1, 2, 3]);
+        _pdfa.PdfAContent = [7, 8, 9];
+
+        var result = await _controller.ConvertToPdf(documentId, true, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(0, _conversion.ConvertCallCount);
+        var converted = Assert.Single(_storage.SavedDocuments);
+        Assert.Equal("report.pdfa.pdf", converted.FileName);
+        Assert.Equal("application/pdf", converted.ContentType);
+        Assert.Equal(new byte[] { 7, 8, 9 }, converted.Content);
+
+        var filesResult = Assert.IsType<OkObjectResult>(await _controller.GetUploadedFiles(CancellationToken.None));
+        var files = Assert.IsAssignableFrom<IReadOnlyList<DocumentListItem>>(filesResult.Value);
+        Assert.Contains(files, file => file.OriginalFileName == "report.pdf");
+        Assert.Contains(files, file => file.OriginalFileName == "report.pdfa.pdf");
     }
 
     [Fact]
@@ -111,7 +134,7 @@ public sealed class FileUploadControllerTests
     {
         var documentId = Guid.NewGuid();
         _storage.AddDocument(documentId, "report.docx", [1, 2, 3]);
-        _conversion.PdfContent = "%PDF-1.7\nnot a PDF/A file"u8.ToArray();
+        _pdfa.Result = new PdfAValidationResult(false, "veraPDF reports non-compliant output.");
 
         var result = await _controller.ConvertToPdf(documentId, true, CancellationToken.None);
 
@@ -134,6 +157,31 @@ public sealed class FileUploadControllerTests
         Assert.Equal("report.pdf", converted.FileName);
         Assert.Equal("application/pdf", converted.ContentType);
         Assert.Equal(new byte[] { 9, 8, 7 }, converted.Content);
+
+        var filesResult = Assert.IsType<OkObjectResult>(await _controller.GetUploadedFiles(CancellationToken.None));
+        var files = Assert.IsAssignableFrom<IReadOnlyList<DocumentListItem>>(filesResult.Value);
+        Assert.Contains(files, file => file.OriginalFileName == "report.pdf");
+    }
+
+    [Fact]
+    public async Task ConvertToPdfAStoresValidatedRenditionAndListsItSeparately()
+    {
+        var documentId = Guid.NewGuid();
+        _storage.AddDocument(documentId, "report.docx", [1, 2, 3]);
+        _pdfa.PdfAContent = [7, 7, 7];
+
+        var result = await _controller.ConvertToPdf(documentId, true, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        var converted = Assert.Single(_storage.SavedDocuments);
+        Assert.Equal("report.pdfa.pdf", converted.FileName);
+        Assert.Equal("application/pdf", converted.ContentType);
+        Assert.Equal(new byte[] { 7, 7, 7 }, converted.Content);
+
+        var filesResult = Assert.IsType<OkObjectResult>(await _controller.GetUploadedFiles(CancellationToken.None));
+        var files = Assert.IsAssignableFrom<IReadOnlyList<DocumentListItem>>(filesResult.Value);
+        Assert.Contains(files, file => file.OriginalFileName == "report.docx");
+        Assert.Contains(files, file => file.OriginalFileName == "report.pdfa.pdf");
     }
 
     private sealed class FakeDocumentStorageService : IDocumentStorageService
@@ -141,9 +189,17 @@ public sealed class FileUploadControllerTests
         private readonly Dictionary<Guid, DocumentDownloadResult> _documents = [];
 
         public List<SavedDocument> SavedDocuments { get; } = [];
+        public List<DocumentListItem> Documents { get; } = [];
 
         public void AddDocument(Guid id, string fileName, byte[] content)
         {
+            Documents.Add(new DocumentListItem
+            {
+                StoredFileName = id.ToString(),
+                OriginalFileName = fileName,
+                Size = content.Length,
+                UploadedAt = DateTimeOffset.UtcNow
+            });
             _documents[id] = new DocumentDownloadResult
             {
                 Id = id,
@@ -159,10 +215,18 @@ public sealed class FileUploadControllerTests
             string? contentType,
             CancellationToken cancellationToken)
         {
+            var id = Guid.NewGuid();
             SavedDocuments.Add(new SavedDocument(originalFileName, content, contentType));
+            Documents.Add(new DocumentListItem
+            {
+                StoredFileName = id.ToString(),
+                OriginalFileName = originalFileName,
+                Size = content.Length,
+                UploadedAt = DateTimeOffset.UtcNow
+            });
             return Task.FromResult(new StoredDocumentResult
             {
-                Id = Guid.NewGuid(),
+                Id = id,
                 OriginalFileName = originalFileName,
                 Size = content.Length
             });
@@ -170,7 +234,7 @@ public sealed class FileUploadControllerTests
 
         public Task<IReadOnlyList<DocumentListItem>> GetDocumentsAsync(CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<DocumentListItem>>([]);
+            return Task.FromResult<IReadOnlyList<DocumentListItem>>(Documents.ToArray());
         }
 
         public Task<DocumentDownloadResult?> GetDocumentByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -206,6 +270,26 @@ public sealed class FileUploadControllerTests
             var outputPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(sourceFilePath) + ".pdf");
             await File.WriteAllBytesAsync(outputPath, PdfContent, cancellationToken);
             return new OfficeConversionResult { Success = true, OutputPdfPath = outputPath };
+        }
+    }
+
+    private sealed class FakePdfAProcessingService : IPdfAProcessingService
+    {
+        public PdfAValidationResult Result { get; set; } = new(true, "Conformance: PASS");
+        public byte[] PdfAContent { get; set; } = [4, 5, 6];
+
+        public async Task<PdfAValidationResult> ConvertToPdfAAsync(string sourcePdfPath, string outputPdfPath, CancellationToken cancellationToken)
+        {
+            if (Result.IsCompliant)
+            {
+                await File.WriteAllBytesAsync(outputPdfPath, PdfAContent, cancellationToken);
+            }
+            return Result;
+        }
+
+        public Task<PdfAValidationResult> ValidateAsync(string pdfPath, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Result);
         }
     }
 

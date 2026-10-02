@@ -10,6 +10,7 @@ describe('FileUpload', () => {
   let fileUploadService: {
     postFile: ReturnType<typeof vi.fn>;
     archiveAsPdfA: ReturnType<typeof vi.fn>;
+    convertDocument: ReturnType<typeof vi.fn>;
     getUploadedFiles: ReturnType<typeof vi.fn>;
     getFileUrl: ReturnType<typeof vi.fn>;
   };
@@ -25,6 +26,7 @@ describe('FileUpload', () => {
     fileUploadService = {
       postFile: vi.fn(() => of(uploadReceipt)),
       archiveAsPdfA: vi.fn(() => of(true)),
+      convertDocument: vi.fn(() => of(true)),
       getUploadedFiles: vi.fn(() => of([] as UploadedFileInfo[])),
       getFileUrl: vi.fn((storedFileName: string) => `/files/${storedFileName}`),
     };
@@ -43,8 +45,12 @@ describe('FileUpload', () => {
     expect(component).toBeTruthy();
   });
 
-  it('enables PDF/A archiving for supported office documents', () => {
+  it('enables PDF/A archiving for supported office documents and PDFs', () => {
     component.handleFileInput(new File(['document'], 'report.DOCX'));
+
+    expect(component.canArchiveAsPdfA).toBe(true);
+
+    component.handleFileInput(new File(['pdf'], 'report.pdf', { type: 'application/pdf' }));
 
     expect(component.canArchiveAsPdfA).toBe(true);
   });
@@ -52,7 +58,7 @@ describe('FileUpload', () => {
   it('disables PDF/A archiving for unsupported types and clears the selection', () => {
     component.archiveAsPdfA = true;
 
-    component.handleFileInput(new File(['pdf'], 'report.pdf'));
+    component.handleFileInput(new File(['image'], 'image.png'));
 
     expect(component.canArchiveAsPdfA).toBe(false);
     expect(component.archiveAsPdfA).toBe(false);
@@ -114,5 +120,43 @@ describe('FileUpload', () => {
     expect(component.errorMessage).toBe('Upload failed. Please try again.');
     expect(fileUploadService.archiveAsPdfA).not.toHaveBeenCalled();
     expect(fileUploadService.getUploadedFiles).toHaveBeenCalledOnce();
+  });
+
+  it('converts an existing uploaded document and refreshes the list', () => {
+    const uploadedDocument: UploadedFileInfo = {
+      storedFileName: uploadReceipt.id,
+      originalFileName: 'report.docx',
+      size: 12,
+      uploadedAt: '2026-10-01T12:00:00Z',
+    };
+
+    component.convertUploadedDocument(uploadedDocument, false);
+
+    expect(fileUploadService.convertDocument).toHaveBeenCalledWith(uploadReceipt.id, false);
+    expect(fileUploadService.getUploadedFiles).toHaveBeenCalledTimes(2);
+    expect(component.conversionMessage).toContain('converted to PDF');
+  });
+
+  it('labels a stored PDF/A rendition in the uploaded list', () => {
+    const archivedDocument: UploadedFileInfo = {
+      storedFileName: 'pdfa-123',
+      originalFileName: 'report.pdfa.pdf',
+      size: 42,
+      uploadedAt: '2026-10-01T12:00:00Z',
+    };
+
+    expect(component.getDocumentFormat(archivedDocument)).toBe('PDF/A');
+  });
+
+  it('offers PDF/A conversion but not redundant PDF conversion for an uploaded PDF', () => {
+    const uploadedPdf: UploadedFileInfo = {
+      storedFileName: 'pdf-123',
+      originalFileName: 'report.pdf',
+      size: 42,
+      uploadedAt: '2026-10-01T12:00:00Z',
+    };
+
+    expect(component.canConvertToPdf(uploadedPdf)).toBe(false);
+    expect(component.canConvertToPdfA(uploadedPdf)).toBe(true);
   });
 });

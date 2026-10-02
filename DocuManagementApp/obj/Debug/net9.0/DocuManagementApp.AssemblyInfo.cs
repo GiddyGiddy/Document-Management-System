@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9be5d0082abf51425adbfc2fe580a7470e3ab382")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b9386c4fee570137f584c92d838d99aeb9af7ade")]
 [assembly: System.Reflection.AssemblyProductAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DocuManagementApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

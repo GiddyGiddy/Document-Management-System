@@ -45,7 +45,7 @@ namespace DocuManagementApp.Controllers
     }
 
     [HttpPost("generate")]
-    public IActionResult Generate([FromBody] GeneratePdfaRequest? request)
+    public async Task<IActionResult> Generate([FromBody] GeneratePdfaRequest? request, CancellationToken cancellationToken)
     {
       if (request is null)
       {
@@ -65,53 +65,57 @@ namespace DocuManagementApp.Controllers
       _pdfaService.PdfKeywords = request.Keywords ?? string.Empty;
 
       int result = request.UseDefaultEncoding
-        ? _pdfaService.DokumentAlsPdfaGenerierenMitDefaultEncoding()
-        : _pdfaService.DokumentAlsPdfaGenerieren();
+        ? await _pdfaService.DokumentAlsPdfaGenerierenMitDefaultEncodingAsync(cancellationToken)
+        : await _pdfaService.DokumentAlsPdfaGenerierenAsync(cancellationToken);
 
       return MapResult(result, "PDF/A generation finished.");
     }
 
     [HttpPost("convert")]
-    public IActionResult Convert([FromBody] ConvertPdfToPdfaRequest? request)
+    public async Task<IActionResult> Convert([FromBody] ConvertPdfToPdfaRequest? request, CancellationToken cancellationToken)
     {
       if (request is null)
       {
         return BadRequest(new { message = "Request body is required." });
       }
 
-      _pdfaService.QuellPfad = request.SourcePdfPath;
-      _pdfaService.PdfaZielPfad = request.OutputPdfPath;
-      _pdfaService.PdfaCompliance = request.ComplianceLevel;
-      _pdfaService.DisablePdfEncryptionForCompliance = request.DisablePdfEncryption;
-      _pdfaService.EnforcePdfaConformanceOutput = request.EnforceConformance;
+      if (string.IsNullOrWhiteSpace(request.SourcePdfPath) || string.IsNullOrWhiteSpace(request.OutputPdfPath))
+      {
+        return BadRequest(new { message = "SourcePdfPath and OutputPdfPath are required." });
+      }
+      if (request.ComplianceLevel != (int)PdfADocumentService.PdfAComplianceLevel.PdfA2B)
+      {
+        return BadRequest(new { message = "Only PDF/A-2b is supported." });
+      }
 
-      int result = _pdfaService.PdfNachPdfaKonvertieren();
-      return MapResult(result, "PDF to PDF/A conversion finished.");
+      var result = await _pdfaService.ConvertPdfToPdfaAsync(request.SourcePdfPath, request.OutputPdfPath, cancellationToken);
+      return result.IsCompliant
+        ? Ok(new { message = "PDF/A-2b conversion and validation passed.", report = result.Report })
+        : BadRequest(new { message = "PDF/A conversion or validation failed.", report = result.Report });
     }
 
     [HttpPost("validate")]
-    public IActionResult Validate([FromBody] ValidatePdfaRequest? request)
+    public async Task<IActionResult> Validate([FromBody] ValidatePdfaRequest? request, CancellationToken cancellationToken)
     {
       if (request is null || string.IsNullOrWhiteSpace(request.PdfPath))
       {
         return BadRequest(new { message = "PdfPath is required." });
       }
 
-      int result = _pdfaService.ValidatePdfaConformance(request.PdfPath);
-      if (result == 0)
+      var result = await _pdfaService.ValidatePdfaAsync(request.PdfPath, cancellationToken);
+      if (result.IsCompliant)
       {
         return Ok(new
         {
           message = "PDF/A validation passed.",
-          report = _pdfaService.GetLastPdfaValidationReport()
+          report = result.Report
         });
       }
 
       return BadRequest(new
       {
-        message = _pdfaService.GetErrorMessage(),
-        report = _pdfaService.GetLastPdfaValidationReport(),
-        resultCode = result
+        message = "PDF/A validation failed.",
+        report = result.Report
       });
     }
 

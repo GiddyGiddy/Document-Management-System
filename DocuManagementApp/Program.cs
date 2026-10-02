@@ -18,7 +18,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
 builder.Services.AddTransient<PdfADocumentService>();
+builder.Services.AddSingleton<IPdfAProcessRunner, PdfAProcessRunner>();
 builder.Services.AddSingleton<IOfficeToPdfConversionService, OfficeToPdfConversionService>();
+builder.Services.AddHttpClient<IPdfAProcessingService, GhostscriptVeraPdfAProcessingService>(client =>
+{
+  client.Timeout = Timeout.InfiniteTimeSpan;
+});
 
 builder.Services.AddCors(options =>
 {

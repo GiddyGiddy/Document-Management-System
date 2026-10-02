@@ -18,13 +18,13 @@ namespace DocuManagementApp.Controllers
     private readonly ILogger<FileUploadController> _logger;
     private readonly IDocumentStorageService _documentStorageService;
     private readonly IOfficeToPdfConversionService _officeConversionService;
-    private readonly PdfADocumentService _pdfaService;
+    private readonly IPdfAProcessingService _pdfaService;
 
     public FileUploadController(
       ILogger<FileUploadController> logger,
       IDocumentStorageService documentStorageService,
       IOfficeToPdfConversionService officeConversionService,
-      PdfADocumentService pdfaService)
+      IPdfAProcessingService pdfaService)
     {
       _logger = logger;
       _documentStorageService = documentStorageService;
@@ -118,7 +118,13 @@ namespace DocuManagementApp.Controllers
         return NotFound(new { message = "File not found." });
       }
 
-      if (!_officeConversionService.IsSupportedExtension(document.OriginalFileName))
+      var isPdf = string.Equals(Path.GetExtension(document.OriginalFileName), ".pdf", StringComparison.OrdinalIgnoreCase);
+      if (isPdf && !toPdfA)
+      {
+        return BadRequest(new { message = "The uploaded document is already a PDF. Request PDF/A conversion instead." });
+      }
+
+      if (!isPdf && !_officeConversionService.IsSupportedExtension(document.OriginalFileName))
       {
         return BadRequest(new { message = "Only Word or Excel documents can be converted (.doc, .docx, .xls, .xlsx, .rtf, .odt, .ods)." });
       }
@@ -131,29 +137,31 @@ namespace DocuManagementApp.Controllers
         var sourcePath = Path.Combine(workDirectory, Path.GetFileName(document.OriginalFileName));
         await System.IO.File.WriteAllBytesAsync(sourcePath, document.Content, cancellationToken);
 
-        var conversionResult = await _officeConversionService.ConvertToPdfAsync(sourcePath, workDirectory, cancellationToken);
-        if (!conversionResult.Success || conversionResult.OutputPdfPath is null)
+        string finalPdfPath;
+        if (isPdf)
         {
-          _logger.LogError("Word/Excel to PDF conversion failed for document '{DocumentId}': {Error}", id, conversionResult.ErrorMessage);
-          return StatusCode(StatusCodes.Status500InternalServerError, new { message = conversionResult.ErrorMessage ?? "Conversion failed." });
+          finalPdfPath = sourcePath;
         }
+        else
+        {
+          var conversionResult = await _officeConversionService.ConvertToPdfAsync(sourcePath, workDirectory, cancellationToken);
+          if (!conversionResult.Success || conversionResult.OutputPdfPath is null)
+          {
+            _logger.LogError("Word/Excel to PDF conversion failed for document '{DocumentId}': {Error}", id, conversionResult.ErrorMessage);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = conversionResult.ErrorMessage ?? "Conversion failed." });
+          }
 
-        var finalPdfPath = conversionResult.OutputPdfPath;
+          finalPdfPath = conversionResult.OutputPdfPath;
+        }
 
         if (toPdfA)
         {
           var pdfaPath = Path.Combine(workDirectory, Path.GetFileNameWithoutExtension(finalPdfPath) + "-pdfa.pdf");
-          _pdfaService.QuellPfad = finalPdfPath;
-          _pdfaService.PdfaZielPfad = pdfaPath;
-          _pdfaService.PdfaCompliance = 1;
-          _pdfaService.DisablePdfEncryptionForCompliance = true;
-          _pdfaService.EnforcePdfaConformanceOutput = true;
-
-          var pdfaResult = _pdfaService.PdfNachPdfaKonvertieren();
-          if (pdfaResult != 0)
+          var pdfaResult = await _pdfaService.ConvertToPdfAAsync(finalPdfPath, pdfaPath, cancellationToken);
+          if (!pdfaResult.IsCompliant)
           {
-            _logger.LogError("PDF/A conversion failed for document '{DocumentId}' with code {Code}.", id, pdfaResult);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"PDF/A conversion failed with code {pdfaResult}." });
+            _logger.LogError("PDF/A conversion failed for document '{DocumentId}': {Report}", id, pdfaResult.Report);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "PDF/A conversion or validation failed.", report = pdfaResult.Report });
           }
 
           finalPdfPath = pdfaPath;
