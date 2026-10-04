@@ -136,7 +136,6 @@ C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\refint\DocuManage
 C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\DocuManagementApp.pdb
 C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\DocuManagementApp.genruntimeconfig.cache
 C:\angular_asp_core_web_api\DocuManagementApp\obj\Debug\net9.0\ref\DocuManagementApp.dll
-C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.exe
 C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\RabbitMQ.Client.dll
 C:\Users\gideon.ayodele\AppData\Local\Temp\outbox-build\DocManagerNET\postsharp.config
 C:\Users\gideon.ayodele\AppData\Local\Temp\outbox-build\fo.net\Core\postsharp.config

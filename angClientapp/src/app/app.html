@@ -314,7 +314,10 @@
   <section class="hero">
     <nav class="nav" aria-label="Main navigation">
       <div class="brand"><span class="brand-mark" aria-hidden="true">D</span> Documenta</div>
-      <a class="nav-link" href="#upload">Workspace öffnen <span aria-hidden="true">↗</span></a>
+      <div class="nav-actions">
+        <a class="nav-link" href="#search">Suche öffnen <span aria-hidden="true">↘</span></a>
+        <a class="nav-link" href="#upload">Workspace <span aria-hidden="true">↗</span></a>
+      </div>
     </nav>
 
     <div class="hero-content">
@@ -322,8 +325,129 @@
       <h1>Weniger suchen. Mehr erledigen.</h1>
       <p class="hero-copy">Laden Sie Dokumente sicher hoch, behalten Sie den Überblick und machen Sie aus Dateien verlässliche Arbeitsabläufe.</p>
       <div class="hero-actions">
-        <a class="button button-primary" href="#upload">Dokument hochladen <span aria-hidden="true">&nbsp;→</span></a>
-        <a class="button button-secondary" href="#features">Mehr erfahren</a>
+        <a class="button button-primary" href="#search">Dokumente durchsuchen <span aria-hidden="true">&nbsp;→</span></a>
+        <a class="button button-secondary" href="#upload">Dokument hochladen</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section search-section" id="search">
+    <div class="section-inner search-inner">
+      <div class="section-heading search-heading">
+        <p class="eyebrow">Dokumentensuche</p>
+        <h2>Finden Sie die richtige Stelle.</h2>
+        <p>Filtern Sie direkt oder fragen Sie in natürlicher Sprache. Treffer verweisen auf die Fundstelle im Dokument.</p>
+      </div>
+
+      <div class="search-workbench">
+        <div class="search-mode" role="group" aria-label="Suchmodus">
+          <button type="button" class="mode-button" [class.active]="searchMode === 'deterministic'" [attr.aria-pressed]="searchMode === 'deterministic'" (click)="setSearchMode('deterministic')">Filter</button>
+          <button type="button" class="mode-button" [class.active]="searchMode === 'hybrid'" [attr.aria-pressed]="searchMode === 'hybrid'" (click)="setSearchMode('hybrid')">Semantisch</button>
+          <button type="button" class="mode-button" [class.active]="searchMode === 'agentic'" [attr.aria-pressed]="searchMode === 'agentic'" (click)="setSearchMode('agentic')">Fragen</button>
+        </div>
+
+        <form class="search-form" (ngSubmit)="runSearch()">
+          @if (searchMode === 'agentic') {
+            <label class="field field-question">
+              <span>Frage an Ihre Dokumente</span>
+              <textarea name="question" [(ngModel)]="question" rows="3" maxlength="1000" placeholder="Zeige mir alle Lieferantenverträge aus dem letzten Jahr mit automatischer Verlängerungsklausel."></textarea>
+            </label>
+          } @else {
+            @if (searchMode === 'hybrid') {
+              <label class="field field-wide">
+                <span>Inhalt oder Konzept</span>
+                <input name="semanticQuery" [(ngModel)]="semanticQuery" type="search" placeholder="z. B. automatische Verlängerung und Kündigungsfrist">
+              </label>
+            }
+
+            <div class="filter-grid">
+              <label class="field">
+                <span>Dokumenttyp</span>
+                <select name="documentKind" [(ngModel)]="documentKind">
+                  <option value="">Alle Typen</option>
+                  <option value="Invoice">Rechnung</option>
+                  <option value="Contract">Vertrag</option>
+                  <option value="IdentityDocument">Identitätsdokument</option>
+                  <option value="FinancialStatement">Finanzbericht</option>
+                  <option value="Pdf">PDF</option>
+                  <option value="Image">Bild</option>
+                  <option value="Spreadsheet">Tabelle</option>
+                  <option value="Text">Text</option>
+                  <option value="Unknown">Sonstige</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Firma oder Person</span>
+                <input name="entityName" [(ngModel)]="entityName" type="search" placeholder="Name exakt filtern">
+              </label>
+              <label class="field">
+                <span>Von</span>
+                <input name="dateFrom" [(ngModel)]="dateFrom" type="date">
+              </label>
+              <label class="field">
+                <span>Bis</span>
+                <input name="dateTo" [(ngModel)]="dateTo" type="date">
+              </label>
+              @if (searchMode === 'deterministic') {
+                <label class="field field-wide">
+                  <span>Begriff im Dokument</span>
+                  <input name="keyword" [(ngModel)]="keyword" type="search" placeholder="Wort oder Formulierung">
+                </label>
+              }
+            </div>
+          }
+
+          <div class="search-actions">
+            <button class="search-submit" type="submit" [disabled]="isSearching">
+              @if (isSearching) { Suche läuft … } @else { Dokumente durchsuchen <span aria-hidden="true">→</span> }
+            </button>
+            <span class="search-cost-note">
+              @if (searchMode === 'deterministic') { Struktur- und Volltextsuche · ohne Modellaufruf }
+              @else if (searchMode === 'hybrid') { Filter und semantische Ähnlichkeit }
+              @else { Agentenantwort mit Quellen }
+            </span>
+          </div>
+        </form>
+
+        @if (isSearching) {
+          <p class="search-status" role="status">Dokumente werden durchsucht …</p>
+        }
+        @if (searchError) {
+          <p class="search-error" role="alert">{{ searchError }}</p>
+        }
+        @if (agenticAnswer) {
+          <section class="agent-answer" aria-labelledby="answer-heading">
+            <p class="eyebrow">Zusammenfassung</p>
+            <h3 id="answer-heading">Antwort aus Ihren Dokumenten</h3>
+            <p>{{ agenticAnswer }}</p>
+          </section>
+        }
+        @if (searchResults.length > 0) {
+          <section class="results-section" aria-labelledby="results-heading">
+            <div class="results-heading-row">
+              <h3 id="results-heading">Quellen und Treffer</h3>
+              <span>{{ searchResults.length }} Treffer</span>
+            </div>
+            <ol class="search-results">
+              @for (result of searchResults; track result.documentId + ':' + result.citation.pageNumber + ':' + $index) {
+                <li class="search-result">
+                  <div class="result-meta">
+                    <span class="result-kind">{{ result.documentKind }}</span>
+                    @if (result.entityName) { <span>{{ result.entityName }}</span> }
+                    @if (result.documentDate) { <time>{{ result.documentDate }}</time> }
+                    @if (result.score !== null) { <span>Relevanz {{ result.score | number:'1.0-2' }}</span> }
+                  </div>
+                  <p class="result-text">{{ result.text }}</p>
+                  <a class="citation-link" [href]="result.citation.sourceUrl" target="_blank" rel="noopener noreferrer">
+                    Seite {{ result.citation.pageNumber }} im Original öffnen <span aria-hidden="true">↗</span>
+                  </a>
+                </li>
+              }
+            </ol>
+          </section>
+        } @else if (hasSearched && !isSearching && !searchError && !agenticAnswer) {
+          <p class="empty-results" role="status">Keine passenden Dokumentstellen gefunden.</p>
+        }
       </div>
     </div>
   </section>

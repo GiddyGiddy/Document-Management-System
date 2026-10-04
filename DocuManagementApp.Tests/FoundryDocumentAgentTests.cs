@@ -42,6 +42,32 @@ public sealed class FoundryDocumentAgentTests
     }
 
     [Fact]
+    public async Task QwenFoundryLocalDisablesThinkingForStrictJsonExtraction()
+    {
+        JsonDocument? capturedBody = null;
+        var handler = new StubHttpMessageHandler((request, _) =>
+        {
+            capturedBody = JsonDocument.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            return Task.FromResult(ChatResponse("{\"vendorName\":\"Example\"}"));
+        });
+        using var httpClient = new HttpClient(handler);
+        var agent = CreateAgent(httpClient, new FoundryModelOptions
+        {
+            Provider = "FoundryLocal",
+            FoundryLocal = new FoundryLocalModelOptions
+            {
+                Endpoint = "http://localhost:5273/v1/",
+                ModelName = "qwen3-4b-generic-cpu:3"
+            }
+        });
+
+        await agent.ExtractAsync(SupportedDocumentKinds.Invoice, "Invoice markdown", CancellationToken.None);
+
+        Assert.Contains("/no_think", capturedBody?.RootElement.GetProperty("messages")[1].GetProperty("content").GetString());
+        Assert.Equal("json_object", capturedBody?.RootElement.GetProperty("response_format").GetProperty("type").GetString());
+    }
+
+    [Fact]
     public async Task MicrosoftFoundryUsesV1EndpointAndApiKeyHeader()
     {
         HttpRequestMessage? capturedRequest = null;

@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrchestratorService", "Orch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtractionService", "ExtractionService\ExtractionService.csproj", "{81DF2A46-465C-477B-A4D2-5CD42CB0051A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchService", "SearchService\SearchService.csproj", "{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x64.Build.0 = Debug|Any CPU
 		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x86.ActiveCfg = Release|Any CPU
 		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x86.Build.0 = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Debug|x64.Build.0 = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Debug|x86.Build.0 = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Release|x64.ActiveCfg = Release|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Release|x64.Build.0 = Release|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Release|x86.ActiveCfg = Release|Any CPU
+		{4A8EEB36-9C60-4698-8B00-B1B82D3F671C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

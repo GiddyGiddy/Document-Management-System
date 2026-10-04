@@ -1,7 +1,9 @@
+using System.Security.Cryptography;
+using System.Text;
 using ExtractionService;
 using Npgsql;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOptions<RabbitMqOptions>()
     .Bind(builder.Configuration.GetSection("RabbitMq"))
@@ -22,6 +24,12 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 builder.Services.AddSingleton<ExtractionDatabase>();
+builder.Services.AddOptions<ExtractionArtifactApiOptions>()
+    .Bind(builder.Configuration.GetSection("ExtractionArtifactApi"))
+    .Validate(options => Uri.TryCreate(options.ListenUrl, UriKind.Absolute, out _), "ExtractionArtifactApi:ListenUrl must be an absolute URL.")
+    .Validate(options => Uri.TryCreate(options.PublicBaseUrl, UriKind.Absolute, out _), "ExtractionArtifactApi:PublicBaseUrl must be an absolute URL.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.ApiKey), "ExtractionArtifactApi:ApiKey must be supplied through user secrets or environment variables.")
+    .ValidateOnStart();
 builder.Services.AddOptions<FoundryModelOptions>()
     .Bind(builder.Configuration.GetSection("Foundry"))
     .Validate(options => options.Provider is "FoundryLocal" or "MicrosoftFoundry", "Foundry:Provider must be FoundryLocal or MicrosoftFoundry.")
@@ -66,6 +74,27 @@ builder.Services.AddHostedService<ExtractionRequestConsumer>();
 builder.Services.AddHostedService<ExtractionJobProcessor>();
 builder.Services.AddHostedService<ExtractionOutboxPublisherService>();
 
-var host = builder.Build();
-await host.Services.GetRequiredService<ExtractionDatabase>().InitializeAsync(CancellationToken.None);
-await host.RunAsync();
+var app = builder.Build();
+app.Urls.Add(app.Configuration["ExtractionArtifactApi:ListenUrl"] ?? "http://localhost:5085");
+
+app.MapGet("/api/internal/extraction-artifacts/{taskId:guid}", async (
+    Guid taskId,
+    HttpRequest request,
+    ExtractionDatabase database,
+    Microsoft.Extensions.Options.IOptions<ExtractionArtifactApiOptions> artifactOptions,
+    CancellationToken cancellationToken) =>
+{
+    var configuredKey = Encoding.UTF8.GetBytes(artifactOptions.Value.ApiKey);
+    var suppliedKey = Encoding.UTF8.GetBytes(request.Headers["X-Extraction-Artifact-Key"].ToString());
+    if (configuredKey.Length == 0 || configuredKey.Length != suppliedKey.Length ||
+        !CryptographicOperations.FixedTimeEquals(configuredKey, suppliedKey))
+    {
+        return Results.Unauthorized();
+    }
+
+    var artifact = await database.GetArtifactAsync(taskId, cancellationToken);
+    return artifact is null ? Results.NotFound() : Results.Ok(artifact);
+});
+
+await app.Services.GetRequiredService<ExtractionDatabase>().InitializeAsync(CancellationToken.None);
+await app.RunAsync();

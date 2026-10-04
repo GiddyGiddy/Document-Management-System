@@ -80,6 +80,11 @@ public sealed class FoundryDocumentAgent(
     private async Task<string> CompleteAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken)
     {
         var (endpoint, modelName, apiKey, provider) = ResolveProvider(options.Value);
+        if (provider == "FoundryLocal" && modelName.Contains("qwen3-4b", StringComparison.OrdinalIgnoreCase))
+        {
+            userPrompt += "\n/no_think";
+        }
+
         var endpointUri = new Uri(EnsureTrailingSlash(endpoint), UriKind.Absolute);
         var requestUri = new Uri(endpointUri, "chat/completions");
         using var request = new HttpRequestMessage(HttpMethod.Post, requestUri);

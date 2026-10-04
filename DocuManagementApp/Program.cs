@@ -19,6 +19,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
 builder.Services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
 builder.Services.AddScoped<IOutboxStore, EfOutboxStore>();
+builder.Services.AddOptions<SearchProxyOptions>()
+  .Bind(builder.Configuration.GetSection("SearchProxy"))
+  .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _), "SearchProxy:BaseUrl must be an absolute URL.")
+  .Validate(options => !options.Enabled || !string.IsNullOrWhiteSpace(options.ApiKey), "SearchProxy:ApiKey must be configured when the proxy is enabled.")
+  .ValidateOnStart();
+builder.Services.AddHttpClient<SearchServiceProxy>((serviceProvider, client) =>
+{
+  var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<SearchProxyOptions>>().Value;
+  client.BaseAddress = new Uri(options.BaseUrl.EndsWith('/') ? options.BaseUrl : options.BaseUrl + "/");
+  client.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddTransient<PdfADocumentService>();
 builder.Services.AddSingleton<IPdfAProcessRunner, PdfAProcessRunner>();
 builder.Services.AddSingleton<IOfficeToPdfConversionService, OfficeToPdfConversionService>();

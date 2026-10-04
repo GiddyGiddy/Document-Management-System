@@ -1,5 +1,4 @@
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\appsettings.json
-C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\ExtractionService.exe
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\ExtractionService.deps.json
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\ExtractionService.runtimeconfig.json
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\ExtractionService.dll
@@ -34,7 +33,6 @@ C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\Microsoft.Extensi
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\Npgsql.dll
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\RabbitMQ.Client.dll
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\System.Diagnostics.EventLog.dll
-C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.Messages.dll
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\ExtractionService.csproj.AssemblyReference.cache
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\ExtractionService.GeneratedMSBuildEditorConfig.editorconfig
@@ -49,3 +47,14 @@ C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\ExtractionService
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\ExtractionService.genruntimeconfig.cache
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\ref\ExtractionService.dll
 C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\Microsoft.Extensions.Http.dll
+C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\ExtractionService.staticwebassets.endpoints.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\rpswa.dswa.cache.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\ExtractionService.MvcApplicationPartsAssemblyInfo.cache
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\rjimswa.dswa.cache.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\scopedcss\bundle\ExtractionService.styles.css
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.build.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.build.json.cache
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.development.json
+C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.build.endpoints.json

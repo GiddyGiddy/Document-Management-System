@@ -22,6 +22,7 @@ $env:RabbitMq__Password = '<local-rabbitmq-password>'
 $env:DocumentContentApi__BaseUrl = 'http://localhost:5176/'
 $env:DocumentIntelligence__Endpoint = 'http://localhost:5000'
 $env:DocumentIntelligence__ApiKey = '<document-intelligence-container-key>'
+$env:ExtractionArtifactApi__ApiKey = '<internal-artifact-api-key>'
 dotnet run --project .\ExtractionService\ExtractionService.csproj
 ```
 
@@ -42,6 +43,8 @@ $env:Foundry__FoundryLocal__ModelName = '<loaded-model-id>'
 $env:ExtractionProcessing__EnableModelExtraction = 'true'
 ```
 
+For Qwen3-4B, use the loaded model ID (for example, `qwen3-4b-generic-cpu:3`). The agent appends Qwen's `/no_think` cue to the user prompt so reasoning text does not precede the strict JSON extraction result.
+
 Foundry Local API key is optional. If supplied, it is sent as a Bearer token.
 
 For **Microsoft Foundry**, use the resource's OpenAI v1 endpoint, the exact deployed model name, and a key stored in user-secrets or a secret manager:
@@ -56,4 +59,4 @@ dotnet user-secrets set 'Foundry:MicrosoftFoundry:ApiKey' '<key>' --project .\Ex
 
 For Microsoft Foundry, the adapter sends the configured key in the `api-key` header. A project endpoint alone is not enough; deploy a chat-capable model and use its deployment name. The adapter asks for JSON-object output, then deserializes against the strict C# schema selected by `documentKind` and applies deterministic field/date/arithmetic checks before accepting it.
 
-On success the service saves the kind-specific JSON and publishes `document.task.completed`; after three invalid candidates it saves the issues and publishes `document.task.failed`. Both outcomes use a transactional outbox, stable event IDs, publisher confirms, and retry backoff. These event types and fields match the orchestrator's current consumer contract. Identity-document and financial data can contain sensitive information, so restrict database/broker access and apply suitable retention policies to stored payloads and extraction results.
+On success the service saves the kind-specific JSON and publishes `document.task.completed`; `outputReference` is an absolute URL built from `ExtractionArtifactApi:PublicBaseUrl`. The artifact endpoint serves the stored layout and extraction JSON at `/api/internal/extraction-artifacts/{taskId}` and requires the `X-Extraction-Artifact-Key` header. Configure the same random internal key in Search Service secrets and keep the endpoint on an internal network. After three invalid candidates the extractor saves the issues and publishes `document.task.failed`. Both outcomes use a transactional outbox, stable event IDs, publisher confirms, and retry backoff. These event types and fields match the orchestrator's current consumer contract. Identity-document and financial data can contain sensitive information, so restrict database/broker access and apply suitable retention policies to stored payloads and extraction results.

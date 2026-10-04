@@ -1,6 +1,7 @@
 using Npgsql;
 using NpgsqlTypes;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace ExtractionService;
 
@@ -22,7 +23,9 @@ public interface IExtractionJobStore
     Task MarkExtractionOutcomeAsync(ExtractionJob job, DocumentLayoutResult layout, DocumentExtractionOutcome outcome, CancellationToken cancellationToken);
 }
 
-public sealed class ExtractionDatabase(NpgsqlDataSource dataSource) : IExtractionJobStore
+public sealed class ExtractionDatabase(
+    NpgsqlDataSource dataSource,
+    IOptions<ExtractionArtifactApiOptions> artifactOptions) : IExtractionJobStore
 {
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -243,8 +246,7 @@ public sealed class ExtractionDatabase(NpgsqlDataSource dataSource) : IExtractio
                 taskId = job.TaskId,
                 taskType = "extraction",
                 documentKind = success.DocumentKind,
-                outputReference = (string?)null,
-                extractionResult = JsonDocument.Parse(success.Json).RootElement.Clone(),
+                outputReference = ExtractionArtifactReference.Create(artifactOptions.Value.PublicBaseUrl, job.TaskId),
                 attempts
             }),
             ExtractionFailed failed => JsonSerializer.Serialize(new
@@ -314,6 +316,36 @@ public sealed class ExtractionDatabase(NpgsqlDataSource dataSource) : IExtractio
         }
 
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task<ExtractionArtifact?> GetArtifactAsync(Guid taskId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""
+            SELECT task_id, correlation_id, document_id, document_kind, layout_markdown,
+                   layout_json::text, extraction_json::text, extraction_attempts, updated_at_utc
+            FROM extraction_jobs
+            WHERE task_id = @task_id AND status = 'ExtractionSucceeded';
+            """, connection);
+        command.Parameters.AddWithValue("task_id", taskId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        using var layoutJson = JsonDocument.Parse(reader.GetString(5));
+        using var extractionJson = JsonDocument.Parse(reader.GetString(6));
+        return new ExtractionArtifact(
+            reader.GetGuid(0),
+            reader.GetGuid(1),
+            reader.GetGuid(2),
+            reader.GetString(3),
+            reader.GetString(4),
+            layoutJson.RootElement.Clone(),
+            extractionJson.RootElement.Clone(),
+            reader.GetInt32(7),
+            reader.GetFieldValue<DateTimeOffset>(8));
     }
 
     public async Task MarkLayoutFailedAsync(
