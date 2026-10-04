@@ -19,5 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DocuManagementApp\DocuManagementApp.csproj" />
+    <ProjectReference Include="..\OrchestratorService\OrchestratorService.csproj" />
   </ItemGroup>
 </Project>
