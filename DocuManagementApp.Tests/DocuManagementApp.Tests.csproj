@@ -20,5 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DocuManagementApp\DocuManagementApp.csproj" />
     <ProjectReference Include="..\OrchestratorService\OrchestratorService.csproj" />
+    <ProjectReference Include="..\ExtractionService\ExtractionService.csproj" />
   </ItemGroup>
 </Project>

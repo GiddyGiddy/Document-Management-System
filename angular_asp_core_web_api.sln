@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocuManagementApp.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrchestratorService", "OrchestratorService\OrchestratorService.csproj", "{6CE2F6FE-A9E2-43B9-99EF-C8C9BEC047B7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtractionService", "ExtractionService\ExtractionService.csproj", "{81DF2A46-465C-477B-A4D2-5CD42CB0051A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{6CE2F6FE-A9E2-43B9-99EF-C8C9BEC047B7}.Release|x64.Build.0 = Release|Any CPU
 		{6CE2F6FE-A9E2-43B9-99EF-C8C9BEC047B7}.Release|x86.ActiveCfg = Release|Any CPU
 		{6CE2F6FE-A9E2-43B9-99EF-C8C9BEC047B7}.Release|x86.Build.0 = Release|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Debug|x64.Build.0 = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Debug|x86.Build.0 = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x64.ActiveCfg = Release|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x64.Build.0 = Debug|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x86.ActiveCfg = Release|Any CPU
+		{81DF2A46-465C-477B-A4D2-5CD42CB0051A}.Release|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

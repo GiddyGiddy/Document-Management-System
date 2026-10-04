@@ -287,3 +287,9 @@ C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\System.Diag
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\OrchestratorService.dll
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\OrchestratorService.pdb
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.deps.json
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.runtimeconfig.json
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.exe
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.dll
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.pdb
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\Microsoft.Extensions.Http.dll
