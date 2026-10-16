@@ -1,0 +1,42 @@
+<section class="revisions">
+  <h2>Verlauf und Bearbeitung</h2>
+  <p class="doc-id">Dokument: {{ documentId }}</p>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="ok" role="status">{{ message() }}</p> }
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Bearbeiter</th><th>Datum</th><th>Kommentar</th><th>Größe</th><th></th></tr>
+    </thead>
+    <tbody>
+      @for (r of revisions().slice().reverse(); track r.revisionNumber) {
+        <tr [class.current]="r.revisionNumber === currentRevision()">
+          <td>{{ r.revisionNumber }}</td>
+          <td>{{ r.editedBy }}</td>
+          <td>{{ r.createdAtUtc | date:'short' }}</td>
+          <td>{{ r.comment }}</td>
+          <td>{{ r.sizeBytes }} B</td>
+          <td class="actions">
+            @if (editable()) { <button type="button" (click)="view(r.revisionNumber)">Anzeigen</button> }
+            <a [href]="downloadUrl(r.revisionNumber)" target="_blank" rel="noopener noreferrer">Download</a>
+            @if (r.revisionNumber !== currentRevision()) {
+              <button type="button" (click)="restore(r.revisionNumber)" [disabled]="busy()">Wiederherstellen</button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (editable()) {
+    <h3>Aktuelle Version bearbeiten @if (viewing !== null && viewing !== currentRevision()) { <small>(Ansicht von Revision {{ viewing }})</small> }</h3>
+    <label>Bearbeiter <input [(ngModel)]="editor" name="editor" /></label>
+    <textarea [(ngModel)]="text" name="text" rows="18" aria-label="Dokumentinhalt"></textarea>
+    <label>Kommentar <input [(ngModel)]="comment" name="comment" /></label>
+    <button type="button" (click)="save()" [disabled]="busy()">Als neue Revision speichern</button>
+    <button type="button" (click)="reload()" [disabled]="busy()">Neu laden</button>
+  } @else if (revisions().length > 0) {
+    <p>Dieser Dateityp ist nicht als Text bearbeitbar. Nutzen Sie den Download.</p>
+  }
+</section>

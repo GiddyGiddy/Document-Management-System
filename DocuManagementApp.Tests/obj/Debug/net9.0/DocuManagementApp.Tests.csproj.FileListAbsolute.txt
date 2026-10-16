@@ -324,3 +324,4 @@ C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagem
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\OrchestratorService.exe
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.exe
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\SearchService.exe
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\Microsoft.EntityFrameworkCore.InMemory.dll

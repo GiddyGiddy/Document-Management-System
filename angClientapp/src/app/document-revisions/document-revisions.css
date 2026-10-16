@@ -1,0 +1,8 @@
+.revisions { display: grid; gap: 0.75rem; padding: 1rem; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #ddd; }
+tr.current { font-weight: 600; background: #f3f8ff; }
+.actions { display: flex; gap: 0.5rem; align-items: center; }
+textarea { width: 100%; font-family: monospace; }
+.error { color: #b00020; }
+.ok { color: #1b5e20; }

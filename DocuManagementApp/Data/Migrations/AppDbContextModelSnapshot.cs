@@ -36,6 +36,11 @@ namespace WebApplication1.Data.Migrations
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("CurrentRevisionNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("FailureSummary")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
@@ -77,13 +82,60 @@ namespace WebApplication1.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UploadedAtUtc");
-
                     b.HasIndex("CorrelationId");
+
+                    b.HasIndex("UploadedAtUtc");
 
                     b.HasIndex("ProcessingStatus", "UploadedAtUtc");
 
                     b.ToTable("documents", (string)null);
+                });
+
+            modelBuilder.Entity("DocuManagementApp.Models.DocumentRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("BaseRevisionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EditedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<byte[]>("FileContent")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("RevisionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId", "RevisionNumber")
+                        .IsUnique();
+
+                    b.ToTable("document_revisions", (string)null);
                 });
 
             modelBuilder.Entity("DocuManagementApp.Models.OutboxMessage", b =>
@@ -148,6 +200,15 @@ namespace WebApplication1.Data.Migrations
                         .HasFilter("\"PublishedAtUtc\" IS NULL");
 
                     b.ToTable("outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("DocuManagementApp.Models.DocumentRevision", b =>
+                {
+                    b.HasOne("DocuManagementApp.Models.DocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("DocuManagementApp.Models.OutboxMessage", b =>

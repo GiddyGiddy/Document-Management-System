@@ -441,6 +441,7 @@
                   <a class="citation-link" [href]="result.citation.sourceUrl" target="_blank" rel="noopener noreferrer">
                     Seite {{ result.citation.pageNumber }} im Original öffnen <span aria-hidden="true">↗</span>
                   </a>
+                  <a class="citation-link" [routerLink]="['/documents', result.documentId, 'revisions']">Verlauf / Bearbeiten</a>
                 </li>
               }
             </ol>
@@ -496,6 +497,8 @@
       <app-file-upload></app-file-upload>
     </div>
   </section>
+
+  <router-outlet></router-outlet>
 </main>
 
 

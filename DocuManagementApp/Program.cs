@@ -19,6 +19,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
 builder.Services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
 builder.Services.AddScoped<IOutboxStore, EfOutboxStore>();
+builder.Services.AddScoped<IDocumentRevisionService, DocumentRevisionService>();
 builder.Services.AddOptions<SearchProxyOptions>()
   .Bind(builder.Configuration.GetSection("SearchProxy"))
   .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _), "SearchProxy:BaseUrl must be an absolute URL.")

@@ -10,6 +10,7 @@
         "dependencies": {
           "DocuManagementApp": "1.0.0",
           "ExtractionService": "1.0.0",
+          "Microsoft.EntityFrameworkCore.InMemory": "9.0.4",
           "Microsoft.NET.Test.Sdk": "17.13.0",
           "OrchestratorService": "1.0.0",
           "RabbitMQ.Client": "6.8.1",
@@ -133,6 +134,19 @@
         }
       },
       "Microsoft.EntityFrameworkCore.Analyzers/9.0.4": {},
+      "Microsoft.EntityFrameworkCore.InMemory/9.0.4": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "9.0.4",
+          "Microsoft.Extensions.Caching.Memory": "9.0.4",
+          "Microsoft.Extensions.Logging": "9.0.4"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.EntityFrameworkCore.InMemory.dll": {
+            "assemblyVersion": "9.0.4.0",
+            "fileVersion": "9.0.425.16310"
+          }
+        }
+      },
       "Microsoft.EntityFrameworkCore.Relational/9.0.1": {
         "dependencies": {
           "Microsoft.EntityFrameworkCore": "9.0.4",
@@ -1332,6 +1346,13 @@
       "sha512": "sha512-cMsm1O7g9X5qbB2wjHf3BVVvGwkG+zeXQ+M91I1Bm6RfylFMImqBPzs0+vmuef7fPxr2yOzPhIfJ2wQJfmtaSw==",
       "path": "microsoft.entityframeworkcore.analyzers/9.0.4",
       "hashPath": "microsoft.entityframeworkcore.analyzers.9.0.4.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.InMemory/9.0.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-VHjUwjvN8UKjb8xtKJ/o+dc9tTeHOW3QzlfkzX3JrUspLkPIjwMdZCcw6eS4gsFjby0NFkcXBjHtrgTjVOfO5Q==",
+      "path": "microsoft.entityframeworkcore.inmemory/9.0.4",
+      "hashPath": "microsoft.entityframeworkcore.inmemory.9.0.4.nupkg.sha512"
     },
     "Microsoft.EntityFrameworkCore.Relational/9.0.1": {
       "type": "package",

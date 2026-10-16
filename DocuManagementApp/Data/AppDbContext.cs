@@ -11,6 +11,7 @@ public sealed class AppDbContext : DbContext
 
   public DbSet<DocumentRecord> Documents => Set<DocumentRecord>();
   public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+  public DbSet<DocumentRevision> DocumentRevisions => Set<DocumentRevision>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -37,9 +38,25 @@ public sealed class AppDbContext : DbContext
       entity.Property(x => x.ProcessingStartedAtUtc);
       entity.Property(x => x.ProcessingCompletedAtUtc);
       entity.Property(x => x.FailureSummary).HasMaxLength(2000);
+      entity.Property(x => x.CurrentRevisionNumber).HasDefaultValue(0).IsRequired();
       entity.HasIndex(x => x.UploadedAtUtc);
       entity.HasIndex(x => x.CorrelationId);
       entity.HasIndex(x => new { x.ProcessingStatus, x.UploadedAtUtc });
+    });
+
+    modelBuilder.Entity<DocumentRevision>(entity =>
+    {
+      entity.ToTable("document_revisions");
+      entity.HasKey(x => x.Id);
+      entity.Property(x => x.FileContent).IsRequired();
+      entity.Property(x => x.ContentType).HasMaxLength(256).IsRequired();
+      entity.Property(x => x.EditedBy).HasMaxLength(256).IsRequired();
+      entity.Property(x => x.Comment).HasMaxLength(2000);
+      entity.HasOne<DocumentRecord>()
+        .WithMany()
+        .HasForeignKey(x => x.DocumentId)
+        .OnDelete(DeleteBehavior.Cascade);
+      entity.HasIndex(x => new { x.DocumentId, x.RevisionNumber }).IsUnique();
     });
 
     modelBuilder.Entity<OutboxMessage>(entity =>

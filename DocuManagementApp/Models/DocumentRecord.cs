@@ -14,4 +14,5 @@ public sealed class DocumentRecord
   public DateTimeOffset? ProcessingStartedAtUtc { get; set; }
   public DateTimeOffset? ProcessingCompletedAtUtc { get; set; } = DateTimeOffset.UtcNow;
   public string? FailureSummary { get; set; }
+  public int CurrentRevisionNumber { get; set; }
 }

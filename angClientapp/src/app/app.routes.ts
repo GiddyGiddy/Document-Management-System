@@ -1,3 +1,7 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+import { DocumentRevisions } from './document-revisions/document-revisions';
+
+export const routes: Routes = [
+  { path: 'documents/:id/revisions', component: DocumentRevisions }
+];

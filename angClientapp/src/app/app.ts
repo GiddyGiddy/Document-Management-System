@@ -1,12 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { FileUpload } from './file-upload/file-upload';
 import { AgenticSearchResponse, SearchApiService, SearchFilter, SearchMode, SearchResult } from './search-api.service';
 
 @Component({
   selector: 'app-root',
-  imports: [FileUpload, FormsModule, DecimalPipe],
+  imports: [FileUpload, FormsModule, DecimalPipe, RouterLink, RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
