@@ -269,3 +269,4 @@ C:\Users\gideon.ayodele\AppData\Local\Temp\correlation-testbuild\Debug\net9.0\Do
 C:\Users\gideon.ayodele\AppData\Local\Temp\correlation-testbuild\Debug\net9.0\DocuManagementApp.runtimeconfig.json
 C:\Users\gideon.ayodele\AppData\Local\Temp\correlation-testbuild\Debug\net9.0\DocuManagementApp.dll
 C:\Users\gideon.ayodele\AppData\Local\Temp\correlation-testbuild\Debug\net9.0\DocuManagementApp.pdb
+C:\angular_asp_core_web_api\DocuManagementApp\bin\Debug\net9.0\DocuManagementApp.exe

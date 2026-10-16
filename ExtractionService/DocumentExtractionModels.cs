@@ -88,11 +88,22 @@ public static class SupportedDocumentKinds
     public const string Text = "Text";
     public const string Unknown = "Unknown";
 
+    public static IReadOnlyList<string> Structured { get; } = [Invoice, Contract, IdentityDocument, FinancialStatement];
+
     public static IReadOnlyList<string> All { get; } =
     [Invoice, Contract, IdentityDocument, FinancialStatement, Pdf, Image, Spreadsheet, Text, Unknown];
 }
 
-public abstract record DocumentExtractionOutcome(int Attempts, string DocumentKind);
+public sealed record DocumentClassification(string Kind, double Confidence, string Reason);
+
+public abstract record DocumentExtractionOutcome(int Attempts, string DocumentKind)
+{
+    public DocumentClassification? Classification { get; init; }
+}
+
+public sealed record NeedsClassification(
+    string DocumentKind,
+    DocumentClassification Proposed) : DocumentExtractionOutcome(0, DocumentKind);
 
 public sealed record ExtractionSuccess(
     int Attempts,

@@ -5,6 +5,11 @@ public interface IDocumentExtractionAgent
     Task<string> ExtractAsync(string documentKind, string markdown, CancellationToken cancellationToken);
 }
 
+public interface IDocumentClassifierAgent
+{
+    Task<DocumentClassification> ClassifyAsync(string markdown, CancellationToken cancellationToken);
+}
+
 public interface IDocumentCorrectionAgent
 {
     Task<string> CorrectAsync(

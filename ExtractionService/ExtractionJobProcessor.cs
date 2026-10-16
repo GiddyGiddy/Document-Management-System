@@ -10,6 +10,7 @@ public sealed class ExtractionProcessingOptions
     public int MaxLayoutAttempts { get; set; } = 3;
     public int RetryBaseSeconds { get; set; } = 5;
     public int RetryMaxSeconds { get; set; } = 60;
+    public double ClassificationConfidenceThreshold { get; set; } = 0.7;
 }
 
 public sealed class ExtractionLayoutPipeline(
@@ -18,7 +19,8 @@ public sealed class ExtractionLayoutPipeline(
     DocumentCriticLoop criticLoop,
     IExtractionJobStore jobStore,
     IOptions<ExtractionProcessingOptions> options,
-    ILogger<ExtractionLayoutPipeline> logger)
+    ILogger<ExtractionLayoutPipeline> logger,
+    IDocumentClassifierAgent? classifier = null)
 {
     public async Task ProcessAsync(ExtractionJob job, CancellationToken cancellationToken)
     {
@@ -34,7 +36,29 @@ public sealed class ExtractionLayoutPipeline(
                 return;
             }
 
-            var outcome = await criticLoop.RunAsync(job.DocumentKind, layout.Markdown, cancellationToken);
+            var kind = job.DocumentKind;
+            DocumentClassification? classification = null;
+            var alreadyStructured = DocumentExtractionSchemas.TryNormalizeKind(kind, out var known) &&
+                SupportedDocumentKinds.Structured.Contains(known);
+            if (!alreadyStructured && classifier is not null)
+            {
+                classification = await classifier.ClassifyAsync(layout.Markdown, cancellationToken);
+                if (classification.Confidence < settings.ClassificationConfidenceThreshold ||
+                    !SupportedDocumentKinds.Structured.Contains(classification.Kind))
+                {
+                    var review = new NeedsClassification(kind, classification) { Classification = classification };
+                    await jobStore.MarkExtractionOutcomeAsync(job, layout, review, cancellationToken);
+                    logger.LogInformation(
+                        "Extraction task {TaskId} needs manual classification (proposed {Kind}, confidence {Confidence:0.00}).",
+                        job.TaskId, classification.Kind, classification.Confidence);
+                    return;
+                }
+
+                kind = classification.Kind;
+            }
+
+            var outcome = await criticLoop.RunAsync(kind, layout.Markdown, cancellationToken);
+            outcome = outcome with { Classification = classification };
             await jobStore.MarkExtractionOutcomeAsync(job, layout, outcome, cancellationToken);
             logger.LogInformation(
                 "Extraction task {TaskId} finished with {OutcomeType} after {Attempts} attempt(s).",

@@ -58,3 +58,4 @@ C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.b
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.build.json.cache
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.development.json
 C:\angular_asp_core_web_api\ExtractionService\obj\Debug\net9.0\staticwebassets.build.endpoints.json
+C:\angular_asp_core_web_api\ExtractionService\bin\Debug\net9.0\ExtractionService.exe

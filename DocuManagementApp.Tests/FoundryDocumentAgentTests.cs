@@ -135,6 +135,30 @@ public sealed class FoundryDocumentAgentTests
         };
     }
 
+    [Fact]
+    public void ParseClassificationReadsValidJson()
+    {
+        var result = FoundryDocumentAgent.ParseClassification("{\"kind\":\"Invoice\",\"confidence\":0.9,\"reason\":\"r\"}");
+        Assert.Equal("Invoice", result.Kind);
+        Assert.Equal(0.9, result.Confidence);
+    }
+
+    [Fact]
+    public void ParseClassificationClampsConfidenceAndMapsUnsupportedKind()
+    {
+        var result = FoundryDocumentAgent.ParseClassification("{\"kind\":\"Poem\",\"confidence\":5,\"reason\":\"r\"}");
+        Assert.Equal("Unknown", result.Kind);
+        Assert.Equal(1.0, result.Confidence);
+    }
+
+    [Fact]
+    public void ParseClassificationHandlesInvalidJson()
+    {
+        var result = FoundryDocumentAgent.ParseClassification("not json");
+        Assert.Equal("Unknown", result.Kind);
+        Assert.Equal(0, result.Confidence);
+    }
+
     private sealed class StubHttpMessageHandler(
         Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync) : HttpMessageHandler
     {

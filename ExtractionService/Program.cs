@@ -40,6 +40,7 @@ builder.Services.AddHttpClient<FoundryDocumentAgent>(client =>
 });
 builder.Services.AddSingleton<IDocumentExtractionAgent>(serviceProvider => serviceProvider.GetRequiredService<FoundryDocumentAgent>());
 builder.Services.AddSingleton<IDocumentCorrectionAgent>(serviceProvider => serviceProvider.GetRequiredService<FoundryDocumentAgent>());
+builder.Services.AddSingleton<IDocumentClassifierAgent>(serviceProvider => serviceProvider.GetRequiredService<FoundryDocumentAgent>());
 builder.Services.AddSingleton<DocumentExtractionValidator>();
 builder.Services.AddSingleton<DocumentCriticLoop>();
 builder.Services.AddOptions<DocumentContentApiOptions>()

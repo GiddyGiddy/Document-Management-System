@@ -67,6 +67,9 @@ public sealed class ExtractionDatabase(
             ALTER TABLE extraction_jobs ADD COLUMN IF NOT EXISTS next_attempt_at_utc timestamptz NOT NULL DEFAULT now();
             ALTER TABLE extraction_jobs ADD COLUMN IF NOT EXISTS lease_until_utc timestamptz NULL;
             ALTER TABLE extraction_jobs ADD COLUMN IF NOT EXISTS lock_token uuid NULL;
+            ALTER TABLE extraction_jobs ADD COLUMN IF NOT EXISTS classified_kind text NULL;
+            ALTER TABLE extraction_jobs ADD COLUMN IF NOT EXISTS classification_confidence double precision NULL;
+            ALTER TABLE extraction_jobs ADD COLUMN IF NOT EXISTS classification_reason text NULL;
             CREATE INDEX IF NOT EXISTS ix_extraction_jobs_status_created
                 ON extraction_jobs (status, next_attempt_at_utc, created_at_utc);
             CREATE TABLE IF NOT EXISTS extraction_outbox_events (
@@ -230,10 +233,17 @@ public sealed class ExtractionDatabase(
             ExtractionFailed failed => failed.LastCandidateJson,
             _ => null
         };
-        var failureSummary = outcome is ExtractionFailed failedOutcome
-            ? string.Join("; ", failedOutcome.Issues.Select(issue => $"{issue.Path}: {issue.Message}"))
-            : null;
+        var needsClassification = outcome is NeedsClassification;
+        var failureSummary = outcome switch
+        {
+            ExtractionFailed failedOutcome => string.Join("; ", failedOutcome.Issues.Select(issue => $"{issue.Path}: {issue.Message}")),
+            NeedsClassification => "Needs manual classification",
+            _ => null
+        };
         var attempts = outcome.Attempts;
+        var classificationInfo = outcome.Classification is null
+            ? null
+            : new { kind = outcome.Classification.Kind, confidence = outcome.Classification.Confidence, reason = outcome.Classification.Reason };
         var payload = outcome switch
         {
             ExtractionSuccess success => JsonSerializer.Serialize(new
@@ -247,6 +257,22 @@ public sealed class ExtractionDatabase(
                 taskType = "extraction",
                 documentKind = success.DocumentKind,
                 outputReference = ExtractionArtifactReference.Create(artifactOptions.Value.PublicBaseUrl, job.TaskId),
+                classification = classificationInfo,
+                attempts
+            }),
+            NeedsClassification pending => JsonSerializer.Serialize(new
+            {
+                eventId,
+                eventType,
+                schemaVersion = 1,
+                correlationId = job.CorrelationId,
+                documentId = job.DocumentId,
+                taskId = job.TaskId,
+                taskType = "extraction",
+                documentKind = pending.DocumentKind,
+                failureSummary,
+                needsClassification = true,
+                classification = classificationInfo,
                 attempts
             }),
             ExtractionFailed failed => JsonSerializer.Serialize(new
@@ -261,6 +287,7 @@ public sealed class ExtractionDatabase(
                 documentKind = failed.DocumentKind,
                 failureSummary,
                 extractionIssues = failed.Issues,
+                classification = classificationInfo,
                 attempts
             }),
             _ => throw new ArgumentOutOfRangeException(nameof(outcome))
@@ -277,13 +304,19 @@ public sealed class ExtractionDatabase(
                 extraction_candidate = @candidate,
                 extraction_attempts = @attempts,
                 failure_summary = @failure_summary,
+                classified_kind = @classified_kind,
+                classification_confidence = @classification_confidence,
+                classification_reason = @classification_reason,
                 lease_until_utc = NULL,
                 lock_token = NULL,
                 updated_at_utc = @now
             WHERE task_id = @task_id AND lock_token = @lock_token AND status = 'Processing';
             """, connection, transaction))
         {
-            update.Parameters.AddWithValue("status", succeeded ? "ExtractionSucceeded" : "ExtractionFailed");
+            update.Parameters.AddWithValue("classified_kind", (object?)outcome.Classification?.Kind ?? DBNull.Value);
+            update.Parameters.AddWithValue("classification_confidence", (object?)outcome.Classification?.Confidence ?? DBNull.Value);
+            update.Parameters.AddWithValue("classification_reason", (object?)outcome.Classification?.Reason ?? DBNull.Value);
+            update.Parameters.AddWithValue("status", succeeded ? "ExtractionSucceeded" : needsClassification ? "NeedsClassification" : "ExtractionFailed");
             update.Parameters.AddWithValue("markdown", layout.Markdown);
             update.Parameters.AddWithValue("layout_json", NpgsqlDbType.Jsonb, layout.RawJson);
             update.Parameters.AddWithValue("extraction_json", NpgsqlDbType.Jsonb, (object?)outputJson ?? DBNull.Value);

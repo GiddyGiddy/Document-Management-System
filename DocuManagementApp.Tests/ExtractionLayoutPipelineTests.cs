@@ -55,7 +55,8 @@ public sealed class ExtractionLayoutPipelineTests
         IDocumentContentClient contentClient,
         IDocumentLayoutClient layoutClient,
             FakeJobStore store,
-            bool enableModelExtraction = false)
+            bool enableModelExtraction = false,
+            IDocumentClassifierAgent? classifier = null)
     {
             var fakeAgent = new FakeInvoiceAgent();
         return new ExtractionLayoutPipeline(
@@ -70,14 +71,81 @@ public sealed class ExtractionLayoutPipelineTests
                 RetryBaseSeconds = 1,
                 RetryMaxSeconds = 5
             }),
-            NullLogger<ExtractionLayoutPipeline>.Instance);
+            NullLogger<ExtractionLayoutPipeline>.Instance,
+            classifier);
     }
 
-    private static ExtractionJob CreateJob(int attemptCount = 1)
+    private static ExtractionJob CreateJob(int attemptCount = 1, string kind = "Invoice")
     {
         return new ExtractionJob(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            "Invoice", null, attemptCount, Guid.NewGuid());
+            kind, null, attemptCount, Guid.NewGuid());
+    }
+
+    private sealed class FakeClassifier(DocumentClassification result) : IDocumentClassifierAgent
+    {
+        public int Calls { get; private set; }
+
+        public Task<DocumentClassification> ClassifyAsync(string markdown, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(result);
+        }
+    }
+
+    private static Task<FakeJobStore> RunClassified(string jobKind, DocumentClassification classification, FakeClassifier? holder = null)
+    {
+        return RunClassifiedCore(jobKind, holder ?? new FakeClassifier(classification));
+    }
+
+    private static async Task<FakeJobStore> RunClassifiedCore(string jobKind, FakeClassifier classifier)
+    {
+        var store = new FakeJobStore();
+        var pipeline = CreatePipeline(
+            new FakeContentClient(),
+            new FakeLayoutClient(new DocumentLayoutResult("# Doc", "{}")),
+            store,
+            enableModelExtraction: true,
+            classifier: classifier);
+        await pipeline.ProcessAsync(CreateJob(kind: jobKind), CancellationToken.None);
+        return store;
+    }
+
+    [Fact]
+    public async Task UnknownKindIsClassifiedThenExtracted()
+    {
+        var store = await RunClassified("Unknown", new DocumentClassification("Invoice", 0.95, "has invoice number"));
+
+        var success = Assert.IsType<ExtractionSuccess>(store.ExtractionOutcome);
+        Assert.Equal("Invoice", success.DocumentKind);
+        Assert.Equal(0.95, success.Classification?.Confidence);
+    }
+
+    [Fact]
+    public async Task LowConfidenceClassificationNeedsManualReview()
+    {
+        var store = await RunClassified("Unknown", new DocumentClassification("Invoice", 0.3, "unsure"));
+
+        var pending = Assert.IsType<NeedsClassification>(store.ExtractionOutcome);
+        Assert.Equal("Invoice", pending.Proposed.Kind);
+    }
+
+    [Fact]
+    public async Task UnsupportedClassificationNeedsManualReview()
+    {
+        var store = await RunClassified("Pdf", new DocumentClassification("Unknown", 0.99, "no match"));
+
+        Assert.IsType<NeedsClassification>(store.ExtractionOutcome);
+    }
+
+    [Fact]
+    public async Task StructuredKindSkipsClassification()
+    {
+        var classifier = new FakeClassifier(new DocumentClassification("Contract", 0.99, "x"));
+        var store = await RunClassified("Invoice", new DocumentClassification("Contract", 0.99, "x"), classifier);
+
+        Assert.Equal(0, classifier.Calls);
+        Assert.IsType<ExtractionSuccess>(store.ExtractionOutcome);
     }
 
     private sealed class FakeContentClient : IDocumentContentClient

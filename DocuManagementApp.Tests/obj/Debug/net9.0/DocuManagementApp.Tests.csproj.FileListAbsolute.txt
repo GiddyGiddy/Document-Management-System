@@ -320,3 +320,7 @@ C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\System.Text
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\System.Threading.Channels.dll
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
 C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Text.Encodings.Web.dll
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\DocuManagementApp.exe
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\OrchestratorService.exe
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\ExtractionService.exe
+C:\angular_asp_core_web_api\DocuManagementApp.Tests\bin\Debug\net9.0\SearchService.exe
