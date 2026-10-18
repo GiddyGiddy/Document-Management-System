@@ -15,6 +15,7 @@ namespace DocuManagementApp.Controllers
 
   [ApiController]
   [Route("api/fileupload")]
+  [Microsoft.AspNetCore.Authorization.Authorize(Policy = "DmsRead")]
   public class FileUploadController : ControllerBase
   {
     private readonly ILogger<FileUploadController> _logger;
@@ -38,6 +39,7 @@ namespace DocuManagementApp.Controllers
       _logger.LogInformation("FileUploadController instantiated.");
     }
 
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "DmsWrite")]
     [HttpPost("upload")]
     [Consumes("application/json")]
     [RequestSizeLimit(30 * 1024 * 1024)]
@@ -193,6 +195,7 @@ namespace DocuManagementApp.Controllers
       return File(stream, contentType, enableRangeProcessing: true);
     }
 
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "DmsWrite")]
     [HttpPost("{id:guid}/convert-to-pdf")]
     public async Task<IActionResult> ConvertToPdf([FromRoute] Guid id, [FromQuery] bool toPdfA, CancellationToken cancellationToken)
     {

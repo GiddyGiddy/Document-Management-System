@@ -35,6 +35,7 @@ namespace DocuManagementApp.Controllers
 
   [ApiController]
   [Route("api/pdfa")]
+  [Microsoft.AspNetCore.Authorization.Authorize(Policy = "DmsAdmin")]
   public class PdfADocumentController : ControllerBase
   {
     private readonly PdfADocumentService _pdfaService;

@@ -3,6 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { FileUpload } from './file-upload/file-upload';
+import { AuthService } from './auth.service';
 import { AgenticSearchResponse, SearchApiService, SearchFilter, SearchMode, SearchResult } from './search-api.service';
 
 @Component({
@@ -27,7 +28,7 @@ export class App {
   hasSearched = false;
   searchError = '';
 
-  constructor(private readonly searchApi: SearchApiService) {}
+  constructor(private readonly searchApi: SearchApiService, protected readonly auth: AuthService) {}
 
   setSearchMode(mode: SearchMode): void {
     this.searchMode = mode;

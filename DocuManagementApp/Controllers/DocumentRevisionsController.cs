@@ -1,4 +1,5 @@
 using DocuManagementApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DocuManagementApp.Controllers;
@@ -18,6 +19,7 @@ public sealed class RestoreRevisionRequest
 
 [ApiController]
 [Route("api/documents/{documentId:guid}/revisions")]
+[Microsoft.AspNetCore.Authorization.Authorize(Policy = "DmsRead")]
 public sealed class DocumentRevisionsController : ControllerBase
 {
   private readonly IDocumentRevisionService _revisions;
@@ -39,6 +41,7 @@ public sealed class DocumentRevisionsController : ControllerBase
   }
 
   [HttpPost]
+  [Authorize(Policy = "DmsWrite")]
   [RequestSizeLimit(30 * 1024 * 1024)]
   public async Task<IActionResult> Create(Guid documentId, [FromBody] CreateRevisionRequest request, CancellationToken ct)
   {
@@ -58,14 +61,18 @@ public sealed class DocumentRevisionsController : ControllerBase
   }
 
   [HttpPost("{revisionNumber:int}/restore")]
+  [Authorize(Policy = "DmsReview")]
   public async Task<IActionResult> Restore(Guid documentId, int revisionNumber, [FromBody] RestoreRevisionRequest request, CancellationToken ct)
   {
     var result = await _revisions.RestoreAsync(documentId, revisionNumber, request.ExpectedRevision, Editor(), ct);
     return Map(result);
   }
 
-  // TODO: replace with the authenticated principal once RBAC is in place.
-  private string Editor() => Request.Headers["X-Editor"].FirstOrDefault() ?? "anonymous";
+  private string Editor() =>
+    User.FindFirst("preferred_username")?.Value
+    ?? User.FindFirst("name")?.Value
+    ?? User.Identity?.Name
+    ?? "unknown";
 
   private IActionResult Map(RevisionResult result) => result.Outcome switch
   {

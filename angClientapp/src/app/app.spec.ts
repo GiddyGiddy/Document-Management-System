@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { FileUploadService } from './file-upload.service';
 import { SearchApiService } from './search-api.service';
+import { AuthService } from './auth.service';
 import { App } from './app';
 
 describe('App', () => {
@@ -30,6 +31,9 @@ describe('App', () => {
       }, {
         provide: SearchApiService,
         useValue: searchApiMock,
+      }, {
+        provide: AuthService,
+        useValue: { isSignedIn: false, userName: '', canWrite: false, canReview: false, login() {}, logout() {} },
       }],
     }).compileComponents();
   });

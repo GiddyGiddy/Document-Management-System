@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { AuthService } from '../auth.service';
 import { DocumentRevisionService, RevisionInfo } from '../document-revision.service';
 
 @Component({
@@ -13,6 +14,7 @@ import { DocumentRevisionService, RevisionInfo } from '../document-revision.serv
 export class DocumentRevisions implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(DocumentRevisionService);
+  protected readonly auth = inject(AuthService);
 
   readonly documentId = this.route.snapshot.paramMap.get('id') ?? '';
   readonly revisions = signal<RevisionInfo[]>([]);
@@ -25,7 +27,6 @@ export class DocumentRevisions implements OnInit {
 
   text = '';
   comment = '';
-  editor = 'anonymous';
   viewing: number | null = null;
   private loadedRevision = 0;
 
@@ -61,7 +62,7 @@ export class DocumentRevisions implements OnInit {
     this.busy.set(true);
     this.error.set('');
     this.api
-      .save(this.documentId, this.text, this.currentInfo()?.contentType ?? 'text/plain', this.loadedRevision, this.comment, this.editor)
+      .save(this.documentId, this.text, this.currentInfo()?.contentType ?? 'text/plain', this.loadedRevision, this.comment)
       .subscribe({
         next: (r) => this.done(`Revision ${r.revisionNumber} gespeichert.`),
         error: (e) => this.fail(e)
@@ -74,7 +75,7 @@ export class DocumentRevisions implements OnInit {
     }
     this.busy.set(true);
     this.error.set('');
-    this.api.restore(this.documentId, revision, this.currentRevision(), this.editor).subscribe({
+    this.api.restore(this.documentId, revision, this.currentRevision()).subscribe({
       next: (r) => this.done(`Revision ${revision} als Revision ${r.revisionNumber} wiederhergestellt.`),
       error: (e) => this.fail(e)
     });

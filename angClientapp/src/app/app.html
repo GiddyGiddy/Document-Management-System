@@ -317,6 +317,12 @@
       <div class="nav-actions">
         <a class="nav-link" href="#search">Suche öffnen <span aria-hidden="true">↘</span></a>
         <a class="nav-link" href="#upload">Workspace <span aria-hidden="true">↗</span></a>
+        @if (auth.isSignedIn) {
+          <span class="nav-link">{{ auth.userName }}</span>
+          <a class="nav-link" href="#" (click)="$event.preventDefault(); auth.logout()">Abmelden</a>
+        } @else {
+          <a class="nav-link" href="#" (click)="$event.preventDefault(); auth.login()">Anmelden</a>
+        }
       </div>
     </nav>
 

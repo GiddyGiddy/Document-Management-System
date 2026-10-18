@@ -23,10 +23,9 @@ describe('DocumentRevisionService', () => {
   });
 
   it('saves UTF-8 text as base64 with editor header', () => {
-    service.save('abc', 'Grüße', 'text/plain', 1, 'c', 'me').subscribe();
+    service.save('abc', 'Grüße', 'text/plain', 1, 'c').subscribe();
     const req = http.expectOne((r) => r.url.endsWith('/documents/abc/revisions'));
     expect(req.request.method).toBe('POST');
-    expect(req.request.headers.get('X-Editor')).toBe('me');
     expect(req.request.body.expectedRevision).toBe(1);
     expect(atob(req.request.body.contentBase64).length).toBe(7);
     req.flush({ revisionNumber: 2 });

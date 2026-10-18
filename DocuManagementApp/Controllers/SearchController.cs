@@ -7,6 +7,7 @@ namespace DocuManagementApp.Controllers;
 
 [ApiController]
 [Route("api/search")]
+[Microsoft.AspNetCore.Authorization.Authorize(Policy = "DmsRead")]
 public sealed class SearchController(
     SearchServiceProxy searchProxy,
     IOptions<SearchProxyOptions> options,

@@ -20,7 +20,7 @@
           <td class="actions">
             @if (editable()) { <button type="button" (click)="view(r.revisionNumber)">Anzeigen</button> }
             <a [href]="downloadUrl(r.revisionNumber)" target="_blank" rel="noopener noreferrer">Download</a>
-            @if (r.revisionNumber !== currentRevision()) {
+            @if (auth.canReview && r.revisionNumber !== currentRevision()) {
               <button type="button" (click)="restore(r.revisionNumber)" [disabled]="busy()">Wiederherstellen</button>
             }
           </td>
@@ -29,9 +29,8 @@
     </tbody>
   </table>
 
-  @if (editable()) {
+  @if (editable() && auth.canWrite) {
     <h3>Aktuelle Version bearbeiten @if (viewing !== null && viewing !== currentRevision()) { <small>(Ansicht von Revision {{ viewing }})</small> }</h3>
-    <label>Bearbeiter <input [(ngModel)]="editor" name="editor" /></label>
     <textarea [(ngModel)]="text" name="text" rows="18" aria-label="Dokumentinhalt"></textarea>
     <label>Kommentar <input [(ngModel)]="comment" name="comment" /></label>
     <button type="button" (click)="save()" [disabled]="busy()">Als neue Revision speichern</button>

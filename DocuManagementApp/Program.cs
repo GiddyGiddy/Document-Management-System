@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Identity.Web;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.OpenApi;
 using DocuManagementApp.Data;
@@ -14,6 +15,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+  Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
+  o => o.TokenValidationParameters.RoleClaimType = "roles");
+builder.Services.AddAuthorization(o =>
+{
+  o.AddPolicy("DmsRead", p => p.RequireRole("Viewer", "Contributor", "Reviewer", "Admin"));
+  o.AddPolicy("DmsWrite", p => p.RequireRole("Contributor", "Reviewer", "Admin"));
+  o.AddPolicy("DmsReview", p => p.RequireRole("Reviewer", "Admin"));
+  o.AddPolicy("DmsAdmin", p => p.RequireRole("Admin"));
+});
 builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
@@ -75,6 +88,9 @@ else
 }
 app.UseCors("AllowAngularDevClient");
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 
