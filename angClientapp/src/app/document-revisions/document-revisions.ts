@@ -81,8 +81,34 @@ export class DocumentRevisions implements OnInit {
     });
   }
 
-  downloadUrl(revision: number): string {
-    return this.api.contentUrl(this.documentId, revision);
+  download(revision: number): void {
+    this.error.set('');
+    this.api.download(this.documentId, revision).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${this.documentId}-rev${revision}${this.extensionFor(blob.type)}`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (e) => this.fail(e)
+    });
+  }
+
+  private extensionFor(contentType: string): string {
+    const type = contentType.split(';')[0].trim().toLowerCase();
+    const map: Record<string, string> = {
+      'text/plain': '.txt',
+      'text/markdown': '.md',
+      'text/html': '.html',
+      'application/json': '.json',
+      'application/xml': '.xml',
+      'text/xml': '.xml',
+      'text/csv': '.csv',
+      'application/pdf': '.pdf'
+    };
+    return map[type] ?? '';
   }
 
   private loadCurrent(): void {

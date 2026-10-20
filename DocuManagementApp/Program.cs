@@ -17,9 +17,14 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
 builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
-builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+builder.Services.PostConfigure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
   Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
-  o => o.TokenValidationParameters.RoleClaimType = "roles");
+  o =>
+  {
+    o.MapInboundClaims = false;
+    o.TokenValidationParameters.RoleClaimType = "roles";
+    o.TokenValidationParameters.NameClaimType = "name";
+  });
 builder.Services.AddAuthorization(o =>
 {
   o.AddPolicy("DmsRead", p => p.RequireRole("Viewer", "Contributor", "Reviewer", "Admin"));

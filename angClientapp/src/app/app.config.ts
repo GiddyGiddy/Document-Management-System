@@ -39,7 +39,7 @@ export function msalGuardConfigFactory(): MsalGuardConfiguration {
 export function msalInterceptorConfigFactory(): MsalInterceptorConfiguration {
   return {
     interactionType: InteractionType.Redirect,
-    protectedResourceMap: new Map([[environment.apiURL, [environment.entra.apiScope]]]),
+    protectedResourceMap: new Map([[`${environment.apiURL}/*`, [environment.entra.apiScope]]]),
   };
 }
 

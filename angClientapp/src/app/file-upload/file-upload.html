@@ -63,12 +63,11 @@
                     </span>
                     <a
                         *ngIf="getFileKind(file) !== 'other'; else plainFileName"
-                        [href]="getFileUrl(file)"
-                        target="_blank"
-                        rel="noopener"
+                        href="#"
+                        (click)="openFile(file, $event)"
                     >{{ file.originalFileName }}</a>
                     <ng-template #plainFileName>
-                        <a [href]="getFileUrl(file)" download="{{ file.originalFileName }}">{{ file.originalFileName }}</a>
+                        <a href="#" (click)="openFile(file, $event)">{{ file.originalFileName }}</a>
                         <span class="file-meta"> (no in-browser preview, downloads instead)</span>
                     </ng-template>
                 </div>
@@ -79,6 +78,9 @@
                 <div class="processing-state" [class.state-failed]="file.processingStatus === 'Failed'">
                     <span>{{ file.processingStatus }}</span>
                     <span>{{ file.requestedOutputFormat }}</span>
+                </div>
+                <div class="file-revisions-link">
+                    <a [routerLink]="['/documents', file.storedFileName, 'revisions']">Verlauf / Bearbeiten</a>
                 </div>
                 <div class="correlation-id">Tracking ID: {{ file.correlationId }}</div>
                 <p class="file-failure" *ngIf="file.failureSummary">{{ file.failureSummary }}</p>

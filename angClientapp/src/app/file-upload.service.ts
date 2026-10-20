@@ -89,6 +89,10 @@ export class FileUploadService {
     );
   }
 
+  fetchFile(storedFileName: string): Observable<Blob> {
+    return this.httpClient.get(this.getFileUrl(storedFileName), { responseType: 'blob' });
+  }
+
   getFileUrl(storedFileName: string): string {
     return `${environment.apiURL}/fileupload/download/${encodeURIComponent(storedFileName)}`;
   }

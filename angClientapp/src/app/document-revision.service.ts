@@ -54,6 +54,10 @@ export class DocumentRevisionService {
       );
     }
 
+  download(documentId: string, revision: number): Observable<Blob> {
+    return this.http.get(this.contentUrl(documentId, revision), { responseType: 'blob' });
+  }
+
   contentUrl(documentId: string, revision: number): string {
     return `${this.url(documentId)}/${revision}/content`;
   }

@@ -19,7 +19,7 @@
           <td>{{ r.sizeBytes }} B</td>
           <td class="actions">
             @if (editable()) { <button type="button" (click)="view(r.revisionNumber)">Anzeigen</button> }
-            <a [href]="downloadUrl(r.revisionNumber)" target="_blank" rel="noopener noreferrer">Download</a>
+            <button type="button" (click)="download(r.revisionNumber)">Download</button>
             @if (auth.canReview && r.revisionNumber !== currentRevision()) {
               <button type="button" (click)="restore(r.revisionNumber)" [disabled]="busy()">Wiederherstellen</button>
             }

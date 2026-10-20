@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { MsalService } from '@azure/msal-angular';
+import { environment } from '../environments/environment.development';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -31,7 +32,7 @@ export class AuthService {
   }
 
   login(): void {
-    void this.msal.loginRedirect();
+    void this.msal.loginRedirect({ scopes: [environment.entra.apiScope] });
   }
 
   logout(): void {

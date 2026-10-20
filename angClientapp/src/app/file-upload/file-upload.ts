@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FileUploadService, UploadedFileInfo } from '../file-upload.service';
 
 interface FileUploadError {
@@ -9,7 +10,7 @@ interface FileUploadError {
 
 @Component({
   selector: 'app-file-upload',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './file-upload.html',
   styleUrl: './file-upload.css',
 })
@@ -234,6 +235,30 @@ export class FileUpload implements OnInit {
       return 'audio';
     }
     return 'other';
+  }
+
+  openFile(file: UploadedFileInfo, event?: Event): void {
+    event?.preventDefault();
+    const preview = this.getFileKind(file) !== 'other';
+    const tab = preview ? window.open('', '_blank') : null;
+    this.fileUploadService.fetchFile(file.storedFileName).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        if (preview && tab) {
+          tab.location.href = url;
+        } else {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.originalFileName;
+          a.click();
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      },
+      error: (error) => {
+        tab?.close();
+        console.error('Failed to fetch file:', error);
+      }
+    });
   }
 
   getFileUrl(file: UploadedFileInfo): string {
