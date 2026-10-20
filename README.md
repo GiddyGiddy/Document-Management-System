@@ -11,6 +11,7 @@ An event-driven document management platform: upload documents, convert them to 
 - **Classification & orchestration** – `OrchestratorService` classifies documents (invoice, contract, identity, financial statement, …) and routes them.
 - **Extraction** – `ExtractionService` uses Azure Document Intelligence plus an LLM agent (Foundry Local or Microsoft Foundry) with a critic loop and validators (e.g. invoice validation).
 - **Search** – `SearchService` chunks, embeds and indexes content; deterministic, hybrid and agentic search endpoints.
+- **Agentic AI** – LLM agents classify unknown documents, extract and self-correct structured data, and answer search questions with tool calls and citations (see [Agentic AI](#agentic-ai)).
 - **RBAC** – roles Viewer / Contributor / Reviewer / Admin enforced by the API and reflected in the UI.
 - **Reliable messaging** – transactional outbox in each service, RabbitMQ with dead-letter queues.
 
@@ -40,7 +41,7 @@ flowchart LR
 2. **Conversion** – Office files go through LibreOffice (`OfficeToPdfConversionService`); PDFs can be converted to PDF/A with Ghostscript and validated with veraPDF (`GhostscriptVeraPdfAProcessingService`, `/api/pdfa/*`).
 3. **Archiving/storage** – `DocumentStorageService` stores files under the document GUID; revisions are kept in `DocumentRevisions`.
 4. **Publish** – `OutboxPublisher` publishes `document.ingested` to exchange `documents.events` (publisher confirms, retry with backoff).
-5. **Orchestrate** – `OrchestratorService` consumes `orchestrator.document-ingested`, classifies by file name/content type (`DocumentClassifier`) and emits extraction requests via its own outbox.
+5. **Orchestrate** (rule-based, see [Agentic AI](#agentic-ai)) – `OrchestratorService` consumes `orchestrator.document-ingested`, classifies by file name/content type (`DocumentClassifier`) and emits extraction requests via its own outbox.
 6. **Extract** – `ExtractionService` fetches the document from the API (`DocumentContentApi`), runs layout extraction, optional model extraction, the critic loop and validators, stores artifacts and serves them on its artifact API.
 7. **Index & search** – `SearchService` reads artifacts, chunks (`SearchChunker`), creates embeddings and stores them in `searchdb`.
 
@@ -53,6 +54,88 @@ flowchart LR
 | `ExtractionService` | Extraction agent + artifact API | http://localhost:5085 | `extractiondb` |
 | `SearchService` | Chunking, embeddings, search API | http://localhost:5190 | `searchdb` |
 | `DocuManagementApp.Tests` | Unit tests | – | – |
+
+## Agentic AI
+
+The DMS combines **deterministic code** (routing, validation, persistence, messaging) with **LLM agents** where judgement or language understanding is needed. The principle: the agent proposes, deterministic code verifies and decides. All model access uses OpenAI-compatible endpoints, either local (Foundry Local / Ollama) or hosted (Microsoft Foundry).
+
+```mermaid
+flowchart TD
+  ING[document.ingested] --> ORC[OrchestratorService<br/>rule-based DocumentClassifier]
+  ORC -- kind known --> JOB[Extraction job]
+  ORC -- kind Unknown --> JOB
+  JOB --> LAY[Document Intelligence layout to markdown]
+  LAY --> CLS{Kind unknown?}
+  CLS -- yes --> CA[Classifier agent]
+  CA -- confidence below threshold --> MAN[NeedsClassification: manual review]
+  CA -- ok --> LOOP
+  CLS -- no --> LOOP
+  LOOP[Critic loop, max 3 attempts] --> EA[Extraction agent -> JSON]
+  EA --> VAL[Validator]
+  VAL -- issues --> CORR[Correction agent]
+  CORR --> VAL
+  VAL -- valid --> OK[ExtractionSuccess -> artifacts -> index]
+  VAL -- still invalid after 3 --> FAIL[ExtractionFailed + issues]
+  Q[User question] --> SA[Search agent]
+  SA -- tool call --> HS[execute_hybrid_search]
+  HS --> SA
+  SA --> ANS[Short answer with citations]
+```
+
+### OrchestratorService – deterministic routing (no LLM)
+
+`OrchestratorService` is the decision layer, and intentionally **not** model-driven. `DocumentClassifier.Classify(fileName, contentType)` maps file-name keywords (invoice/bill, contract/agreement/nda, passport/identity/driver-license, financial-statement/annual-report/balance-sheet) to a `DocumentKind` and otherwise falls back on content type or extension (Pdf, Image, Spreadsheet, Text, Unknown). It then emits an extraction request through its outbox. This keeps routing cheap, predictable and testable; documents it cannot classify (`Unknown`) are handed to the classifier agent in ExtractionService, which sees the actual content.
+
+### ExtractionService – the agentic core
+
+`FoundryDocumentAgent` implements three agent roles against the configured model:
+
+| Role | Interface | Purpose |
+|---|---|---|
+| Classifier | `IDocumentClassifierAgent` | Reads the first ~6000 characters of the document markdown and returns `{kind, confidence, reason}` as JSON. Treats the document as untrusted data (prompt-injection guard). Invalid JSON or unsupported kinds become `Unknown` with confidence 0. |
+| Extractor | `IDocumentExtractionAgent` | Produces candidate JSON for the document kind, following the schema in `DocumentExtractionSchemas`. |
+| Corrector | `IDocumentCorrectionAgent` | Receives the markdown, the previous candidate and the validator's issues, and returns a fixed candidate. |
+
+Processing in `ExtractionJobProcessor`:
+
+1. Layout extraction (Azure Document Intelligence) produces markdown.
+2. If the kind is not already a supported structured kind, the classifier agent proposes one. If its confidence is below `ClassificationConfidenceThreshold` (default 0.7) or the kind is unsupported, the job ends as `NeedsClassification` for manual review instead of guessing.
+3. `DocumentCriticLoop` runs a **generate → validate → correct** loop (`MaximumAttempts = 3`): extract, validate with `DocumentExtractionValidator`, and if issues exist feed them back to the corrector. The result is `ExtractionSuccess` (valid JSON) or `ExtractionFailed` (last candidate plus remaining issues).
+4. The outcome is stored as artifacts and an index request is published.
+
+Model extraction is opt-in (`EnableModelExtraction`, default `false`); startup validation fails if it is enabled but no model is configured.
+
+### SearchService – embeddings, hybrid and agentic search
+
+- **Embeddings** – `SearchChunker` splits artifacts into chunks, a text-embedding model (`Embeddings:*`) vectorises them, and `SearchIndexConsumer` stores them in `searchdb`.
+- **Deterministic** (`/api/search/deterministic`) – exact filters only; **Hybrid** (`/api/search/hybrid`) – semantic similarity combined with filters.
+- **Agentic** (`/api/search/agentic`) – `AgenticSearchService` runs a *tool-calling agent* (`DocumentSearchAgent`) that turns a natural-language question into a search and answers from the results:
+  - It has exactly **one tool**, `execute_hybrid_search` (`semanticQuery`, optional `documentKind`, `entityName`, `dateFrom`, `dateTo`, `limit`).
+  - It converts relative dates ("last month") into ISO `yyyy-MM-dd` filters using the current date supplied with each request.
+  - Tenant identity stays implicit; the agent can neither request nor produce a tenant ID, and it cannot write SQL or call other services.
+  - The tool-call budget is `MaximumToolCalls` (default 2, range 1–5); once reached, the tool tells the agent to answer only from results already returned.
+  - Answers must be grounded in returned chunks, cite source URL and page, and be at most two sentences; if nothing is found it says no matching documents were found.
+  - With provider `OpenAICompatible` the Microsoft Agent Framework drives the loop; with `FoundryLocal` the service runs a manual tool-calling loop (`role=tool` messages).
+  - If agentic search is disabled or its endpoint/model or the embedding endpoint is not configured, an `AgenticSearchUnavailableException` is raised, so use the hybrid endpoint instead.
+
+### Agent configuration
+
+| Setting | Service | Meaning |
+|---|---|---|
+| `EnableModelExtraction` | Extraction | Turns the extraction/classifier/corrector agents on. |
+| `ClassificationConfidenceThreshold` | Extraction | Minimum classifier confidence (default 0.7). |
+| `Foundry:Provider` | Extraction | `FoundryLocal` (default, `http://localhost:5273/v1/`) or `MicrosoftFoundry` (`Endpoint`, `DeploymentName`, `ApiKey`). |
+| `Embeddings:Provider/Endpoint/ModelName/ApiKey` | Search | `FoundryLocal`, `Ollama` or `MicrosoftFoundry`; empty endpoint = embeddings disabled. |
+| `AgenticSearch:Enabled/Provider/Endpoint/ModelName/ApiKey/MaximumToolCalls` | Search | Chat model for the search agent (`OpenAICompatible` or `FoundryLocal`). |
+
+Keep API keys in user secrets or environment variables, not in `appsettings.json`.
+
+### Agent safety and limitations
+
+- Agents never write to the database directly: output is validated JSON, and the search agent only calls a read-only search tool scoped to the tenant.
+- Model output is non-deterministic and costs tokens/time; low-confidence classifications and failed extractions are surfaced rather than silently accepted.
+- The local or hosted model must be running/reachable, otherwise extraction jobs retry/fail and agentic search is unavailable.
+- Edited revisions are not re-extracted or re-indexed automatically.
 
 ### API overview
 
