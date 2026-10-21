@@ -44,11 +44,15 @@ public sealed class SearchIndexConsumer(
             {
                 var request = SearchIndexCommand.Parse(delivery.Body, delivery.BasicProperties.MessageId);
                 var artifact = await artifactClient.GetAsync(request.ArtifactReference, stoppingToken);
-                if (artifact.TaskId != request.TaskId || artifact.DocumentId != request.DocumentId ||
-                    !string.Equals(artifact.DocumentKind, request.DocumentKind, StringComparison.OrdinalIgnoreCase))
+                // The search-index task has its own TaskId; the artifact carries the upstream extraction task's ID,
+                // so the link between them is the document and its correlation ID.
+                if (artifact.DocumentId != request.DocumentId || artifact.CorrelationId != request.CorrelationId)
                 {
                     throw new InvalidDataException("The extraction artifact does not match the search-index task.");
                 }
+
+                // Extraction may have reclassified the document, so the artifact's kind is authoritative.
+                request = request with { DocumentKind = artifact.DocumentKind };
 
                 var chunks = SearchChunker.Create(artifact);
                 var embeddings = settings.Embeddings.IsConfigured

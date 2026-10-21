@@ -76,7 +76,7 @@ public sealed class ExtractionRequestTests
 
         var document = await client.GetAsync(documentId, CancellationToken.None);
 
-        Assert.Equal($"api/fileupload/download/{documentId:D}", capturedRequest?.RequestUri?.PathAndQuery.TrimStart('/'));
+        Assert.Equal($"api/fileupload/service-download/{documentId:D}", capturedRequest?.RequestUri?.PathAndQuery.TrimStart('/'));
         Assert.Equal("application/pdf", document.ContentType);
         Assert.Equal(new byte[] { 1, 2, 3 }, document.Bytes);
     }

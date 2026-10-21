@@ -12,25 +12,25 @@ public static class DocumentExtractionSchemas
         var schemaInstructions = kind switch
         {
             SupportedDocumentKinds.Invoice => """
-                Return exactly these properties: vendorName, invoiceNumber, invoiceDate, dueDate, currency, lineItems, subtotal, tax, total.
+                Return exactly any two of these properties: vendorName, invoiceNumber, invoiceDate, dueDate, currency, lineItems, subtotal, tax, total.
                 Dates use yyyy-MM-dd or null. Currency is a three-letter uppercase ISO code. Amounts and quantities are JSON numbers.
                 Each lineItems entry has exactly description, quantity, unitPrice, lineTotal. Do not infer unsupported values.
                 """,
             SupportedDocumentKinds.Contract => """
-                Return exactly these properties: contractType, parties, effectiveDate, expirationDate, governingLaw, keyObligations, terminationClause.
+                Return exactly any two of these properties: contractType, parties, effectiveDate, expirationDate, governingLaw, keyObligations, terminationClause.
                 Dates use yyyy-MM-dd or null. parties and keyObligations are string arrays. Use null for absent optional scalar fields.
                 """,
             SupportedDocumentKinds.IdentityDocument => """
-                Return exactly these properties: documentType, fullName, documentNumber, issuingCountry, issueDate, expiryDate, dateOfBirth.
+                Return exactly any two of these properties: documentType, fullName, documentNumber, issuingCountry, issueDate, expiryDate, dateOfBirth.
                 Dates use yyyy-MM-dd or null. Use null for absent optional scalar fields. Transcribe identifier values exactly; do not infer them.
                 """,
             SupportedDocumentKinds.FinancialStatement => """
-                Return exactly these properties: entityName, statementType, periodStart, periodEnd, currency, revenue, expenses, netIncome, assets, liabilities, equity.
+                Return exactly any two of these properties: entityName, statementType, periodStart, periodEnd, currency, revenue, expenses, netIncome, assets, liabilities, equity.
                 Dates use yyyy-MM-dd or null. Currency is a three-letter uppercase ISO code or null. Monetary values are JSON numbers or null.
                 Preserve the statement's period and units; do not derive or invent figures.
                 """,
             _ => """
-                Return exactly these properties: documentType, title, summary, keyFacts, tables.
+                Return exactly any two of these properties: documentType, title, summary, keyFacts, tables.
                 keyFacts is an array of objects with name and value strings. tables is an array of objects with title, columns (string array), and rows (array of string arrays).
                 Preserve table row and column order. Use null for an absent title. Summarize faithfully and do not infer unsupported facts.
                 """
@@ -63,8 +63,16 @@ public sealed class DocumentExtractionValidator
     private static readonly Regex CurrencyPattern = new("^[A-Z]{3}$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private readonly InvoiceValidator _invoiceValidator = new();
 
+    public string Normalize(string documentKind, string candidateJson)
+    {
+        return DocumentExtractionSchemas.TryNormalizeKind(documentKind, out var kind)
+            ? GermanCandidateNormalizer.Normalize(kind, candidateJson)
+            : candidateJson;
+    }
+
     public IReadOnlyList<ExtractionValidationIssue> Validate(string documentKind, string candidateJson)
     {
+        candidateJson = Normalize(documentKind, candidateJson);
         string normalizedKind;
         try
         {

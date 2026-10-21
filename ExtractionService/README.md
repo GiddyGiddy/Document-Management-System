@@ -16,7 +16,7 @@ Create the `extractiondb` PostgreSQL database, or point the worker at an existin
 ```powershell
 $env:ConnectionStrings__Extraction = 'Host=localhost;Port=5432;Database=extractiondb;Username=postgres;Password=<local-secret>'
 $env:RabbitMq__HostName = 'localhost'
-$env:RabbitMq__Port = '5673'
+$env:RabbitMq__Port = '5672'
 $env:RabbitMq__UserName = '<local-rabbitmq-user>'
 $env:RabbitMq__Password = '<local-rabbitmq-password>'
 $env:DocumentContentApi__BaseUrl = 'http://localhost:5176/'
@@ -26,20 +26,37 @@ $env:ExtractionArtifactApi__ApiKey = '<internal-artifact-api-key>'
 dotnet run --project .\ExtractionService\ExtractionService.csproj
 ```
 
-The Document Intelligence v4 Layout container requires an Azure Document Intelligence resource endpoint and key for billing, plus the accepted EULA. Keep those values in user-secrets or a secret manager; do not commit them. Container limits are substantial (Microsoft documents 8 CPU cores and 16 GB RAM minimum for Layout, with 24 GB recommended).
+The Document Intelligence v4 Layout container requires an Azure Document Intelligence resource endpoint and key for billing, plus the accepted EULA. The worker calls the local container at `http://localhost:5000`; the resource endpoint and key are used by the container for billing, while the same resource key is sent by the worker to the container. Keep the key in user-secrets or a secret manager; do not commit it:
+
+```powershell
+dotnet user-secrets set 'DocumentIntelligence:ApiKey' '<document-intelligence-resource-key>' --project .\ExtractionService\ExtractionService.csproj
+```
+
+The repository's optional `ai` Compose profile runs the v4 Layout container bound to loopback on port 5000, with Microsoft's minimum allocation of 8 CPU cores and 16 GB RAM. Supply the billing endpoint and key in the current PowerShell session, save the key for the worker, and start the container:
+
+```powershell
+$env:DOCUMENT_INTELLIGENCE_BILLING_ENDPOINT = Read-Host 'Azure Document Intelligence resource endpoint'
+$secureKey = Read-Host 'Azure Document Intelligence resource key' -AsSecureString
+$env:DOCUMENT_INTELLIGENCE_API_KEY = [System.Net.NetworkCredential]::new('', $secureKey).Password
+dotnet user-secrets set 'DocumentIntelligence:ApiKey' $env:DOCUMENT_INTELLIGENCE_API_KEY --project .\ExtractionService\ExtractionService.csproj
+docker compose --profile ai up -d document-intelligence
+Remove-Item Env:DOCUMENT_INTELLIGENCE_BILLING_ENDPOINT, Env:DOCUMENT_INTELLIGENCE_API_KEY
+```
+
+Microsoft documents 8 CPU cores and 16 GB RAM minimum for Layout, with 24 GB recommended. The v4 Layout container is available from `mcr.microsoft.com/azure-cognitive-services/form-recognizer/layout-4.0`.
 
 ## Model Provider
 
-Both model routes use the OpenAI-compatible chat-completions API while sharing the same kind-aware extraction and correction prompts and a maximum of three total attempts. Model processing is opt-in; while disabled, jobs stop at `ReadyForExtraction` and do not publish a completion event.
+Both model routes use the OpenAI-compatible chat-completions API while sharing the same kind-aware extraction and correction prompts and a maximum of three total attempts. Model extraction is enabled by default for the configured Foundry Local model; set `ExtractionProcessing:EnableModelExtraction` to `false` to stop after Layout and leave jobs at `ReadyForExtraction`.
 
 The worker supports every current orchestrator `DocumentKind`: `Invoice`, `Contract`, `IdentityDocument`, `FinancialStatement`, `Pdf`, `Image`, `Spreadsheet`, `Text`, and `Unknown`. Invoice, contract, identity, and financial-statement kinds use dedicated strict JSON shapes and validators. File-format-only kinds use a general-document shape with a summary, key facts, and tables; table rows are checked against their column counts.
 
-For **Foundry Local**, set the local server endpoint and the model ID reported by the Foundry Local runtime:
+For **Foundry Local**, the extraction service defaults to `http://localhost:5273/v1/` and the loaded model `qwen3-4b-generic-cpu:3`. The worker enables model extraction by default. Override the endpoint or model name if your local runtime uses different values:
 
 ```powershell
 $env:Foundry__Provider = 'FoundryLocal'
 $env:Foundry__FoundryLocal__Endpoint = 'http://localhost:5273/v1/'
-$env:Foundry__FoundryLocal__ModelName = '<loaded-model-id>'
+$env:Foundry__FoundryLocal__ModelName = 'qwen3-4b-generic-cpu:3'
 $env:ExtractionProcessing__EnableModelExtraction = 'true'
 ```
 

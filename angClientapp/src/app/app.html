@@ -444,7 +444,7 @@
                     @if (result.score !== null) { <span>Relevanz {{ result.score | number:'1.0-2' }}</span> }
                   </div>
                   <p class="result-text">{{ result.text }}</p>
-                  <a class="citation-link" [href]="result.citation.sourceUrl" target="_blank" rel="noopener noreferrer">
+                  <a class="citation-link" [href]="result.citation.sourceUrl" (click)="openOriginal($event, result)" target="_blank" rel="noopener noreferrer">
                     Seite {{ result.citation.pageNumber }} im Original öffnen <span aria-hidden="true">↗</span>
                   </a>
                   <a class="citation-link" [routerLink]="['/documents', result.documentId, 'revisions']">Verlauf / Bearbeiten</a>

@@ -1,9 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { FileUpload } from './file-upload/file-upload';
 import { AuthService } from './auth.service';
+import { FileUploadService } from './file-upload.service';
 import { AgenticSearchResponse, SearchApiService, SearchFilter, SearchMode, SearchResult } from './search-api.service';
 
 @Component({
@@ -28,7 +29,33 @@ export class App {
   hasSearched = false;
   searchError = '';
 
-  constructor(private readonly searchApi: SearchApiService, protected readonly auth: AuthService) {}
+  constructor(
+    private readonly searchApi: SearchApiService,
+    private readonly fileUploadService: FileUploadService,
+    protected readonly auth: AuthService,
+    private readonly changeDetector: ChangeDetectorRef
+  ) {}
+
+  // A plain link navigates without the bearer token, so the original is fetched through HttpClient first.
+  openOriginal(event: Event, result: SearchResult): void {
+    event.preventDefault();
+    const popup = window.open('', '_blank');
+    this.fileUploadService.fetchFile(result.documentId).subscribe({
+      next: (blob) => {
+        const url = `${URL.createObjectURL(blob)}#page=${result.citation.pageNumber}`;
+        if (popup) {
+          popup.location.href = url;
+        } else {
+          window.open(url, '_blank');
+        }
+      },
+      error: (error: unknown) => {
+        popup?.close();
+        this.searchError = this.getErrorMessage(error);
+        this.changeDetector.markForCheck();
+      }
+    });
+  }
 
   setSearchMode(mode: SearchMode): void {
     this.searchMode = mode;
@@ -47,6 +74,12 @@ export class App {
     this.agenticAnswer = '';
     this.searchResults = [];
     this.hasSearched = true;
+
+    if (!this.auth.isSignedIn) {
+      this.finishWithError('Bitte melden Sie sich an, um Dokumente zu durchsuchen.');
+      return;
+    }
+
     this.isSearching = true;
 
     if (this.searchMode === 'agentic') {
@@ -61,6 +94,7 @@ export class App {
           this.agenticAnswer = response.answer;
           this.searchResults = response.sources ?? [];
           this.isSearching = false;
+          this.changeDetector.markForCheck();
         },
         error: (error: unknown) => this.finishWithError(this.getErrorMessage(error))
       });
@@ -100,15 +134,25 @@ export class App {
   private finishWithResults(results: SearchResult[]): void {
     this.searchResults = results;
     this.isSearching = false;
+    this.changeDetector.markForCheck();
   }
 
   private finishWithError(message: string): void {
     this.searchError = message;
     this.isSearching = false;
+    this.changeDetector.markForCheck();
   }
 
   private getErrorMessage(error: unknown): string {
     const response = error as { status?: number; error?: { message?: string } };
+    if (response.status === 401) {
+      return 'Ihre Sitzung ist abgelaufen oder ungültig. Bitte melden Sie sich erneut an.';
+    }
+
+    if (response.status === 403) {
+      return 'Ihnen fehlt die Berechtigung (Rolle Viewer, Contributor, Reviewer oder Admin) für die Suche.';
+    }
+
     if (response.status === 503) {
       return response.error?.message ?? 'Die Suche ist derzeit nicht verfügbar. Prüfen Sie Search Service und Modellkonfiguration.';
     }

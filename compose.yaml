@@ -3,8 +3,8 @@ services:
     image: rabbitmq:4-management
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?Set RABBITMQ_DEFAULT_USER to a dedicated broker username}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS to a strong broker password}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-docuingestion_local}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-num1lznAmgyFooeBjQUdMP9mvOxXGAJp49EKcrWvklI=}
     ports:
       - "127.0.0.1:${RABBITMQ_AMQP_HOST_PORT:-5672}:5672"
       - "127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:-15672}:15672"
@@ -17,5 +17,36 @@ services:
       retries: 6
       start_period: 20s
 
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  document-intelligence:
+    image: mcr.microsoft.com/azure-cognitive-services/form-recognizer/layout-4.0
+    profiles: ["ai"]
+    restart: unless-stopped
+    cpus: 8
+    mem_limit: 16g
+    environment:
+      EULA: accept
+      Billing: ${DOCUMENT_INTELLIGENCE_BILLING_ENDPOINT:-}
+      ApiKey: ${DOCUMENT_INTELLIGENCE_API_KEY:-}
+    ports:
+      - "127.0.0.1:5000:5000"
+
 volumes:
   rabbitmq-data:
+  postgres-data:

@@ -61,9 +61,14 @@ public sealed class InvoiceValidator
         }
 
         var calculatedSubtotal = invoice.LineItems.Sum(item => item.LineTotal);
-        if (Math.Abs(invoice.Subtotal - calculatedSubtotal) > roundingTolerance)
+        var calculatedTotal = invoice.Subtotal + invoice.Tax;
+        // German invoices commonly list gross (tax-inclusive) line prices: lines then sum to the total, not the net subtotal.
+        var linesAreGross = invoice.Tax > 0 &&
+            Math.Abs(calculatedSubtotal - invoice.Total) <= roundingTolerance &&
+            Math.Abs(invoice.Total - calculatedTotal) <= roundingTolerance;
+        if (!linesAreGross && Math.Abs(invoice.Subtotal - calculatedSubtotal) > roundingTolerance)
         {
-            issues.Add(new ExtractionValidationIssue("subtotal", $"Subtotal should equal line totals ({calculatedSubtotal:0.00})."));
+            issues.Add(new ExtractionValidationIssue("subtotal", $"Subtotal should equal line totals ({calculatedSubtotal:0.00}), or line totals should equal the total when line prices include tax."));
         }
 
         if (invoice.Tax < 0)
@@ -76,7 +81,6 @@ public sealed class InvoiceValidator
             issues.Add(new ExtractionValidationIssue("total", "Subtotal and total cannot be negative."));
         }
 
-        var calculatedTotal = invoice.Subtotal + invoice.Tax;
         if (Math.Abs(invoice.Total - calculatedTotal) > roundingTolerance)
         {
             issues.Add(new ExtractionValidationIssue("total", $"Total should equal subtotal plus tax ({calculatedTotal:0.00})."));

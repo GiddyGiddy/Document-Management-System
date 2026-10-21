@@ -33,6 +33,7 @@ public sealed class DocumentCriticLoop(
         var candidateJson = await extractionAgent.ExtractAsync(normalizedKind, markdown, cancellationToken);
         for (var attempt = 1; attempt <= MaximumAttempts; attempt++)
         {
+            candidateJson = validator.Normalize(normalizedKind, candidateJson);
             var issues = validator.Validate(normalizedKind, candidateJson);
             if (issues.Count == 0)
             {

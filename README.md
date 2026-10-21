@@ -191,6 +191,21 @@ dotnet user-secrets set "RabbitMq:Password" "<pw>"
 
 Angular: set the tenant, client ID, API scope and API base URL in the MSAL configuration under `angClientapp/src/app`.
 
+## Postgres databases
+
+`compose.yaml` starts Postgres and creates `orchestratordb` and `extractiondb` on first start (`db/init/01-create-databases.sql`). The services create their own tables on startup.
+
+```powershell
+# .env (not committed): POSTGRES_PASSWORD=<your password>
+docker compose up -d postgres
+cd OrchestratorService
+dotnet user-secrets set "ConnectionStrings:Orchestrator" "Host=localhost;Port=5432;Database=orchestratordb;Username=postgres;Password=<pw>"
+cd ..\ExtractionService
+dotnet user-secrets set "ConnectionStrings:Extraction" "Host=localhost;Port=5432;Database=extractiondb;Username=postgres;Password=<pw>"
+```
+
+Without Docker, run `CREATE DATABASE orchestratordb; CREATE DATABASE extractiondb;` on your own Postgres.
+
 ## Setup & run
 
 1. **RabbitMQ**

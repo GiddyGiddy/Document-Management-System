@@ -8,6 +8,7 @@ namespace ExtractionService;
 public sealed class DocumentContentApiOptions
 {
     public string BaseUrl { get; set; } = "http://localhost:5176/";
+    public string ApiKey { get; set; } = string.Empty;
 }
 
 public sealed class DocumentIntelligenceOptions
@@ -32,7 +33,7 @@ public sealed class DocumentContentApiClient(HttpClient httpClient) : IDocumentC
 {
     public async Task<DocumentContent> GetAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        var relativeUri = $"api/fileupload/download/{documentId:D}";
+        var relativeUri = $"api/fileupload/service-download/{documentId:D}";
         using var response = await httpClient.GetAsync(relativeUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -70,7 +71,7 @@ public sealed class DocumentIntelligenceLayoutClient(
 
         var endpoint = new Uri(settings.Endpoint.EndsWith('/') ? settings.Endpoint : settings.Endpoint + "/");
         var analyzeUri = new Uri(endpoint,
-            $"formrecognizer/documentModels/prebuilt-layout:analyze?api-version={Uri.EscapeDataString(settings.ApiVersion)}&outputContentFormat=markdown");
+            $"documentintelligence/documentModels/prebuilt-layout:analyze?api-version={Uri.EscapeDataString(settings.ApiVersion)}&outputContentFormat=markdown");
         using var content = new ByteArrayContent(document.Bytes);
         content.Headers.ContentType = MediaTypeHeaderValue.Parse(document.ContentType);
         using var request = new HttpRequestMessage(HttpMethod.Post, analyzeUri) { Content = content };

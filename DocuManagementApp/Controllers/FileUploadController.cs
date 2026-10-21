@@ -177,6 +177,26 @@ namespace DocuManagementApp.Controllers
       return Ok(files);
     }
 
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    [HttpGet("service-download/{id:guid}")]
+    public async Task<IActionResult> ServiceDownloadFile(
+      [FromRoute] Guid id,
+      [FromServices] IConfiguration configuration,
+      CancellationToken cancellationToken)
+    {
+      var expected = configuration["ServiceDownload:ApiKey"];
+      var provided = Request.Headers["X-Service-Key"].ToString();
+      if (string.IsNullOrWhiteSpace(expected) ||
+          !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(expected),
+            System.Text.Encoding.UTF8.GetBytes(provided)))
+      {
+        return Unauthorized();
+      }
+
+      return await DownloadFile(id, cancellationToken);
+    }
+
     [HttpGet("download/{id:guid}")]
     public async Task<IActionResult> DownloadFile([FromRoute] Guid id, CancellationToken cancellationToken)
     {

@@ -33,10 +33,11 @@ builder.Services.AddOptions<ExtractionArtifactApiOptions>()
 builder.Services.AddOptions<FoundryModelOptions>()
     .Bind(builder.Configuration.GetSection("Foundry"))
     .Validate(options => options.Provider is "FoundryLocal" or "MicrosoftFoundry", "Foundry:Provider must be FoundryLocal or MicrosoftFoundry.")
+    .Validate(options => options.TimeoutSeconds > 0, "Foundry:TimeoutSeconds must be positive.")
     .ValidateOnStart();
-builder.Services.AddHttpClient<FoundryDocumentAgent>(client =>
+builder.Services.AddHttpClient<FoundryDocumentAgent>((serviceProvider, client) =>
 {
-    client.Timeout = TimeSpan.FromSeconds(120);
+    client.Timeout = TimeSpan.FromSeconds(serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<FoundryModelOptions>>().Value.TimeoutSeconds);
 });
 builder.Services.AddSingleton<IDocumentExtractionAgent>(serviceProvider => serviceProvider.GetRequiredService<FoundryDocumentAgent>());
 builder.Services.AddSingleton<IDocumentCorrectionAgent>(serviceProvider => serviceProvider.GetRequiredService<FoundryDocumentAgent>());
@@ -46,10 +47,12 @@ builder.Services.AddSingleton<DocumentCriticLoop>();
 builder.Services.AddOptions<DocumentContentApiOptions>()
     .Bind(builder.Configuration.GetSection("DocumentContentApi"))
     .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _), "DocumentContentApi:BaseUrl must be an absolute URL.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.ApiKey), "DocumentContentApi:ApiKey must be configured.")
     .ValidateOnStart();
 builder.Services.AddOptions<DocumentIntelligenceOptions>()
     .Bind(builder.Configuration.GetSection("DocumentIntelligence"))
     .Validate(options => Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _), "DocumentIntelligence:Endpoint must be an absolute URL.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.ApiKey), "DocumentIntelligence:ApiKey must be supplied through user secrets or environment variables.")
     .Validate(options => options.ApiVersion == "2024-11-30", "DocumentIntelligence:ApiVersion must match the supported v4 Layout container API.")
     .Validate(options => options.PollIntervalSeconds > 0 && options.TimeoutSeconds > 0, "Document Intelligence poll interval and timeout must be positive.")
     .ValidateOnStart();
@@ -57,6 +60,7 @@ builder.Services.AddHttpClient<IDocumentContentClient, DocumentContentApiClient>
 {
     var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<DocumentContentApiOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl.EndsWith('/') ? options.BaseUrl : options.BaseUrl + "/");
+    client.DefaultRequestHeaders.Add("X-Service-Key", options.ApiKey);
 });
 builder.Services.AddHttpClient<IDocumentLayoutClient, DocumentIntelligenceLayoutClient>((serviceProvider, client) =>
 {

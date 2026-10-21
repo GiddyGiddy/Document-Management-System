@@ -355,7 +355,7 @@ public sealed class ExtractionDatabase(
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var command = new NpgsqlCommand("""
-            SELECT task_id, correlation_id, document_id, document_kind, layout_markdown,
+            SELECT task_id, correlation_id, document_id, COALESCE(classified_kind, document_kind), layout_markdown,
                    layout_json::text, extraction_json::text, extraction_attempts, updated_at_utc
             FROM extraction_jobs
             WHERE task_id = @task_id AND status = 'ExtractionSucceeded';
